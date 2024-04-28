@@ -1,0 +1,8 @@
+[workspace]
+
+resolver = "2"
+
+members = [
+    "first_interpreter",
+    "second_interpreter",
+]
