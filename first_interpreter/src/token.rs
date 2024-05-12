@@ -1,18 +1,18 @@
 /// This represents a chunk of a source file, a token.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     kind: TokenType,
     lexeme: String,
-    literal: String,
+    literal: Option<String>,
     line: u32,
 }
 
 impl Token {
-    pub fn new(kind: TokenType, lexeme: &str, literal: &str, line: u32) -> Self {
+    pub fn new(kind: TokenType, lexeme: &str, literal: Option<&str>, line: u32) -> Self {
         Self {
             kind,
             lexeme: lexeme.to_string(),
-            literal: literal.to_string(),
+            literal: literal.map(|l| l.to_string()),
             line,
         }
     }
@@ -25,7 +25,7 @@ impl std::fmt::Display for Token {
 }
 
 /// Represents the different possible token types
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,

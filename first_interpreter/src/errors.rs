@@ -10,37 +10,58 @@ pub enum ErrorKind {
 /// Error represents a structure for error handling
 #[derive(Debug)]
 pub struct Error {
-    line: u32,
-    loc: String,
+    line: Option<u32>,
+    loc: Option<String>,
     message: String,
     error_kind: ErrorKind,
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "[line {}] Error{:?}: {:?}",
-            self.line, self.loc, self.message
-        )
+        if self.line.is_some() && self.loc.is_some() {
+            return write!(
+                f,
+                "[line {}] Error{:?}: {:?}",
+                self.line.unwrap(),
+                self.loc.clone().unwrap(),
+                self.message
+            );
+        }
+
+        if self.line.is_some() {
+            return write!(f, "[line {}]: {:?}", self.line.unwrap(), self.message);
+        }
+
+        write!(f, "{:?}", self.message)
     }
 }
 
 impl std::error::Error for Error {}
 
 impl Error {
-    pub fn new(line: u32, loc: &str, message: &str, error_kind: ErrorKind) -> Self {
+    fn new(line: Option<u32>, loc: Option<&str>, message: &str, error_kind: ErrorKind) -> Self {
         Self {
             line,
-            loc: loc.to_string(),
+            loc: loc.map(|l| l.to_string()),
             message: message.to_string(),
             error_kind,
         }
     }
 
-    /// This logs a syntax error on a line with a given message
-    pub fn report(line: u32, message: &str) {
-        let err = Error::new(line, "", message, ErrorKind::SyntaxError);
+    /// This logs an error on a line with a given message
+    fn report(line: Option<u32>, message: &str, error_kind: ErrorKind) -> Self {
+        let err = Error::new(line, None, message, error_kind);
         eprintln!("{}", err);
+        err
+    }
+
+    /// This logs an [`ErrorKind::SyntaxError`] on a line with a given message
+    pub fn report_syntax(line: Option<u32>, message: &str) -> Self {
+        Error::report(line, message, ErrorKind::SyntaxError)
+    }
+
+    /// This logs a [`ErrorKind::IOError`] on a line with a given message
+    pub fn report_io(line: Option<u32>, message: &str) -> Self {
+        Error::report(line, message, ErrorKind::IOError)
     }
 }
