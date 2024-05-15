@@ -36,10 +36,10 @@ pub fn run_file(file_path: &str) -> Result<(), Error> {
     let prog = match std::fs::read_to_string(file_path) {
         Ok(prog) => prog,
         Err(err) => {
-            return Err(Error::report_io(
-                None,
-                &format!("Failed to read source file: {:?}", err),
-            ));
+            return Err(Error::report_io(&format!(
+                "Failed to read source file: {:?}",
+                err
+            )));
         }
     };
 

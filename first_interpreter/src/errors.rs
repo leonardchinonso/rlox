@@ -1,67 +1,76 @@
+/// Represents an IO error
+#[derive(Debug)]
+struct IOError {
+    message: String,
+}
+
+impl IOError {
+    pub fn new(message: &str) -> Self {
+        Self {
+            message: message.to_string(),
+        }
+    }
+}
+
+/// Represents a syntax error
+#[derive(Debug)]
+struct SyntaxError {
+    line: u32,
+    message: String,
+}
+
+impl SyntaxError {
+    pub fn new(line: u32, message: &str) -> SyntaxError {
+        SyntaxError {
+            line,
+            message: message.to_string(),
+        }
+    }
+}
+
 /// Denotes what kinds of errors occurred
 /// Non-exhaustive, other kinds might be added in the future
 #[non_exhaustive]
 #[derive(Debug)]
-pub enum ErrorKind {
-    SyntaxError,
-    IOError,
-}
-
-/// Error represents a structure for error handling
-#[derive(Debug)]
-pub struct Error {
-    line: Option<u32>,
-    loc: Option<String>,
-    message: String,
-    error_kind: ErrorKind,
+pub enum Error {
+    /// Error used for syntax errors
+    SyntaxError(SyntaxError),
+    /// Error used for IO errors
+    IOError(IOError),
+    /// Error used for uncategorized errors
+    GenericError(String),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.line.is_some() && self.loc.is_some() {
-            return write!(
-                f,
-                "[line {}] Error{:?}: {:?}",
-                self.line.unwrap(),
-                self.loc.clone().unwrap(),
-                self.message
-            );
+        match self {
+            Error::SyntaxError(err) => write!(f, "[line {}]: {:?}", err.line, err.message),
+            Error::IOError(err) => write!(f, "{:?}", err.message),
+            Error::GenericError(err_msg) => write!(f, "Error: {:?}", err_msg),
         }
-
-        if self.line.is_some() {
-            return write!(f, "[line {}]: {:?}", self.line.unwrap(), self.message);
-        }
-
-        write!(f, "{:?}", self.message)
     }
 }
 
 impl std::error::Error for Error {}
 
 impl Error {
-    fn new(line: Option<u32>, loc: Option<&str>, message: &str, error_kind: ErrorKind) -> Self {
-        Self {
-            line,
-            loc: loc.map(|l| l.to_string()),
-            message: message.to_string(),
-            error_kind,
-        }
-    }
-
     /// This logs an error on a line with a given message
-    fn report(line: Option<u32>, message: &str, error_kind: ErrorKind) -> Self {
-        let err = Error::new(line, None, message, error_kind);
-        eprintln!("{}", err);
-        err
+    fn report(&self) {
+        eprintln!("{}", self);
     }
 
-    /// This logs an [`ErrorKind::SyntaxError`] on a line with a given message
-    pub fn report_syntax(line: Option<u32>, message: &str) -> Self {
-        Error::report(line, message, ErrorKind::SyntaxError)
+    /// This logs an [`Error::SyntaxError`] on a line with a given message
+    pub fn report_syntax(line: u32, message: &str) -> Self {
+        Error::SyntaxError(SyntaxError::new(line, message))
     }
 
-    /// This logs a [`ErrorKind::IOError`] on a line with a given message
-    pub fn report_io(line: Option<u32>, message: &str) -> Self {
-        Error::report(line, message, ErrorKind::IOError)
+    /// This logs an [`Error::IOError`] on a line with a given message
+    pub fn report_io(message: &str) -> Self {
+        Error::IOError(IOError::new(message))
+    }
+
+    /// This logs an [`Error::GenericError`] on a line with a given message
+    pub fn report_generic(message: &str) -> Self {
+        Error::GenericError(message.to_string())
     }
 }

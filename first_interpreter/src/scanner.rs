@@ -46,10 +46,10 @@ impl Scanner {
         if num_errors == 0 {
             Ok(())
         } else {
-            Err(Error::report_syntax(
-                None,
-                &format!("Found {} compilation errors", num_errors),
-            ))
+            Err(Error::report_generic(&format!(
+                "Found {} compilation errors",
+                num_errors
+            )))
         }
     }
 
@@ -101,16 +101,17 @@ impl Scanner {
                     false => self.add_token(TokenType::Slash, None),
                 }
             }
+            Some('"') => self.parse_string()?,
+            Some(c) => {
+                if !c.is_numeric() {
+                    return Err(Error::report_syntax(self.line, "Unexpected character."));
+                }
+                self.parse_number()?;
+            }
             Some('\n') => self.line += 1,
             // skip over and ignore other whitespaces
             Some(' ') | Some('\r') | Some('\t') => {}
-            Some('"') => self.parse_string()?,
-            _ => {
-                return Err(Error::report_syntax(
-                    Some(self.line),
-                    "Unexpected character.",
-                ))
-            }
+            None => return Err(Error::report_syntax(self.line, "Unexpected character.")),
         };
         Ok(())
     }
@@ -127,6 +128,10 @@ impl Scanner {
             return '\0';
         }
         self.source[self.current]
+    }
+
+    pub fn peek_next(&self) -> char {
+        return '\0'
     }
 
     /// Consumes a character at the current position.
@@ -161,7 +166,7 @@ impl Scanner {
         true
     }
 
-    /// Begins to parse a string
+    /// Parses a string
     pub fn parse_string(&mut self) -> Result<(), Error> {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
@@ -171,7 +176,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            return Err(Error::report_syntax(Some(self.line), "Unterminated string"));
+            return Err(Error::report_syntax(self.line, "Unterminated string"));
         }
 
         // consume the closing quotation character (")
@@ -182,6 +187,13 @@ impl Scanner {
             .iter()
             .collect::<String>();
         Ok(self.add_token(TokenType::String, Some(&s)))
+    }
+
+    /// Parses a numerical value
+    pub fn parse_number(&mut self) -> Result<(), Error> {
+        while self.peek().is_numeric() { self.advance(); }
+
+        if self.peek() == '.' && self.peek_next()
     }
 
     /// Creates a new token from the type and literal and pushes it to the
