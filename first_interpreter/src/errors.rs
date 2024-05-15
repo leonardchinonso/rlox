@@ -61,16 +61,22 @@ impl Error {
 
     /// This logs an [`Error::SyntaxError`] on a line with a given message
     pub fn report_syntax(line: u32, message: &str) -> Self {
-        Error::SyntaxError(SyntaxError::new(line, message))
+        let err = Error::SyntaxError(SyntaxError::new(line, message));
+        err.report();
+        err
     }
 
     /// This logs an [`Error::IOError`] on a line with a given message
     pub fn report_io(message: &str) -> Self {
-        Error::IOError(IOError::new(message))
+        let err = Error::IOError(IOError::new(message));
+        err.report();
+        err
     }
 
     /// This logs an [`Error::GenericError`] on a line with a given message
     pub fn report_generic(message: &str) -> Self {
-        Error::GenericError(message.to_string())
+        let err = Error::GenericError(message.to_string());
+        err.report();
+        err
     }
 }

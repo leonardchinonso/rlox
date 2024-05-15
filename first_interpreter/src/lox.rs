@@ -14,9 +14,7 @@ pub fn run_prompt() -> Result<(), &'static str> {
                 break;
             }
             Ok(_) => {
-                if let Err(err) = run(inp) {
-                    eprintln!("Failed to run source code with error: {:?}", err);
-                }
+                let _ = run(inp);
             }
             Err(err) => {
                 eprintln!("Failed to read from interactive shell: {:?}", err);
