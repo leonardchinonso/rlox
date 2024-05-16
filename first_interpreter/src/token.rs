@@ -20,6 +20,10 @@ impl Token {
             line,
         }
     }
+
+    pub fn lexeme(&self) -> String {
+        self.lexeme.clone()
+    }
 }
 
 impl std::fmt::Display for Token {
@@ -114,5 +118,16 @@ pub enum TokenLiteral {
     /// Represents a float literal
     Float(f64),
     /// Represents token without any literals
-    Nothing,
+    Nil,
+}
+
+impl std::fmt::Display for TokenLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TokenLiteral::String(v) => write!(f, "{:?}", v),
+            TokenLiteral::Integer(v) => write!(f, "{:?}", v),
+            TokenLiteral::Float(v) => write!(f, "{:?}", v),
+            TokenLiteral::Nil => write!(f, "nil"),
+        }
+    }
 }

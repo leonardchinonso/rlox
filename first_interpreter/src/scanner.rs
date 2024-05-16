@@ -40,12 +40,8 @@ impl Scanner {
             }
         }
 
-        self.tokens.push(Token::new(
-            TokenType::EOF,
-            "",
-            TokenLiteral::Nothing,
-            self.line,
-        ));
+        self.tokens
+            .push(Token::new(TokenType::EOF, "", TokenLiteral::Nil, self.line));
 
         if num_errors == 0 {
             Ok(())
@@ -61,38 +57,38 @@ impl Scanner {
     pub fn scan_token(&mut self) -> Result<(), Error> {
         let c = self.advance();
         match c {
-            Some('(') => self.add_token(TokenType::LeftParen, TokenLiteral::Nothing),
-            Some(')') => self.add_token(TokenType::RightParen, TokenLiteral::Nothing),
-            Some('{') => self.add_token(TokenType::LeftBrace, TokenLiteral::Nothing),
-            Some('}') => self.add_token(TokenType::RightBrace, TokenLiteral::Nothing),
-            Some(',') => self.add_token(TokenType::Comma, TokenLiteral::Nothing),
-            Some('.') => self.add_token(TokenType::Dot, TokenLiteral::Nothing),
-            Some('-') => self.add_token(TokenType::Minus, TokenLiteral::Nothing),
-            Some('+') => self.add_token(TokenType::Plus, TokenLiteral::Nothing),
-            Some(';') => self.add_token(TokenType::Semicolon, TokenLiteral::Nothing),
-            Some('*') => self.add_token(TokenType::Star, TokenLiteral::Nothing),
+            Some('(') => self.add_token(TokenType::LeftParen, TokenLiteral::Nil),
+            Some(')') => self.add_token(TokenType::RightParen, TokenLiteral::Nil),
+            Some('{') => self.add_token(TokenType::LeftBrace, TokenLiteral::Nil),
+            Some('}') => self.add_token(TokenType::RightBrace, TokenLiteral::Nil),
+            Some(',') => self.add_token(TokenType::Comma, TokenLiteral::Nil),
+            Some('.') => self.add_token(TokenType::Dot, TokenLiteral::Nil),
+            Some('-') => self.add_token(TokenType::Minus, TokenLiteral::Nil),
+            Some('+') => self.add_token(TokenType::Plus, TokenLiteral::Nil),
+            Some(';') => self.add_token(TokenType::Semicolon, TokenLiteral::Nil),
+            Some('*') => self.add_token(TokenType::Star, TokenLiteral::Nil),
             Some('!') => {
                 match self.conditionally_advance('=') {
-                    true => self.add_token(TokenType::BangEqual, TokenLiteral::Nothing),
-                    false => self.add_token(TokenType::Bang, TokenLiteral::Nothing),
+                    true => self.add_token(TokenType::BangEqual, TokenLiteral::Nil),
+                    false => self.add_token(TokenType::Bang, TokenLiteral::Nil),
                 };
             }
             Some('=') => {
                 match self.conditionally_advance('=') {
-                    true => self.add_token(TokenType::EqualEqual, TokenLiteral::Nothing),
-                    false => self.add_token(TokenType::Equal, TokenLiteral::Nothing),
+                    true => self.add_token(TokenType::EqualEqual, TokenLiteral::Nil),
+                    false => self.add_token(TokenType::Equal, TokenLiteral::Nil),
                 };
             }
             Some('<') => {
                 match self.conditionally_advance('=') {
-                    true => self.add_token(TokenType::LessEqual, TokenLiteral::Nothing),
-                    false => self.add_token(TokenType::Less, TokenLiteral::Nothing),
+                    true => self.add_token(TokenType::LessEqual, TokenLiteral::Nil),
+                    false => self.add_token(TokenType::Less, TokenLiteral::Nil),
                 };
             }
             Some('>') => {
                 match self.conditionally_advance('=') {
-                    true => self.add_token(TokenType::GreaterEqual, TokenLiteral::Nothing),
-                    false => self.add_token(TokenType::Greater, TokenLiteral::Nothing),
+                    true => self.add_token(TokenType::GreaterEqual, TokenLiteral::Nil),
+                    false => self.add_token(TokenType::Greater, TokenLiteral::Nil),
                 };
             }
             Some('/') => {
@@ -103,7 +99,7 @@ impl Scanner {
                             self.advance();
                         }
                     }
-                    false => self.add_token(TokenType::Slash, TokenLiteral::Nothing),
+                    false => self.add_token(TokenType::Slash, TokenLiteral::Nil),
                 }
             }
             Some('"') => self.parse_string()?,
@@ -262,7 +258,7 @@ impl Scanner {
             None => TokenType::Identifier,
         };
 
-        self.add_token(token_type, TokenLiteral::Nothing);
+        self.add_token(token_type, TokenLiteral::Nil);
     }
 
     /// Creates a new token from the type and literal and pushes it to the
@@ -305,16 +301,16 @@ mod tests {
                 'v', 'a', 'r', ' ', 'n', 'a', 'm', 'e', ' ', '=', ' ', '"', 'B', 'o', 'b', '"', ';',
             ],
             tokens: vec![
-                Token::new(TokenType::Var, "var", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::Identifier, "name", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::Equal, "=", TokenLiteral::Nothing, 1),
+                Token::new(TokenType::Var, "var", TokenLiteral::Nil, 1),
+                Token::new(TokenType::Identifier, "name", TokenLiteral::Nil, 1),
+                Token::new(TokenType::Equal, "=", TokenLiteral::Nil, 1),
                 Token::new(
                     TokenType::String,
                     "Bob",
                     TokenLiteral::String("Bob".to_string()),
                     1,
                 ),
-                Token::new(TokenType::Semicolon, ";", TokenLiteral::Nothing, 1),
+                Token::new(TokenType::Semicolon, ";", TokenLiteral::Nil, 1),
             ],
             start: 0,
             current: 0,
@@ -323,16 +319,16 @@ mod tests {
         assert_eq!(
             scanner.tokens(),
             vec![
-                Token::new(TokenType::Var, "var", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::Identifier, "name", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::Equal, "=", TokenLiteral::Nothing, 1),
+                Token::new(TokenType::Var, "var", TokenLiteral::Nil, 1),
+                Token::new(TokenType::Identifier, "name", TokenLiteral::Nil, 1),
+                Token::new(TokenType::Equal, "=", TokenLiteral::Nil, 1),
                 Token::new(
                     TokenType::String,
                     "Bob",
                     TokenLiteral::String("Bob".to_string()),
                     1,
                 ),
-                Token::new(TokenType::Semicolon, ";", TokenLiteral::Nothing, 1),
+                Token::new(TokenType::Semicolon, ";", TokenLiteral::Nil, 1),
             ]
         );
     }
@@ -344,17 +340,17 @@ mod tests {
         assert_eq!(
             scanner.tokens(),
             vec![
-                Token::new(TokenType::Var, "var", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::Identifier, "name", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::Equal, "=", TokenLiteral::Nothing, 1),
+                Token::new(TokenType::Var, "var", TokenLiteral::Nil, 1),
+                Token::new(TokenType::Identifier, "name", TokenLiteral::Nil, 1),
+                Token::new(TokenType::Equal, "=", TokenLiteral::Nil, 1),
                 Token::new(
                     TokenType::String,
                     "Bob",
                     TokenLiteral::String("Bob".to_string()),
                     1,
                 ),
-                Token::new(TokenType::Semicolon, ";", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::EOF, "", TokenLiteral::Nothing, 1),
+                Token::new(TokenType::Semicolon, ";", TokenLiteral::Nil, 1),
+                Token::new(TokenType::EOF, "", TokenLiteral::Nil, 1),
             ]
         );
 
@@ -363,17 +359,17 @@ mod tests {
         assert_eq!(
             scanner.tokens(),
             vec![
-                Token::new(TokenType::Var, "var", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::Identifier, "age", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::Equal, "=", TokenLiteral::Nothing, 1),
+                Token::new(TokenType::Var, "var", TokenLiteral::Nil, 1),
+                Token::new(TokenType::Identifier, "age", TokenLiteral::Nil, 1),
+                Token::new(TokenType::Equal, "=", TokenLiteral::Nil, 1),
                 Token::new(
                     TokenType::String,
                     "five",
                     TokenLiteral::String("five".to_string()),
                     1,
                 ),
-                Token::new(TokenType::Semicolon, ";", TokenLiteral::Nothing, 1),
-                Token::new(TokenType::EOF, "", TokenLiteral::Nothing, 1),
+                Token::new(TokenType::Semicolon, ";", TokenLiteral::Nil, 1),
+                Token::new(TokenType::EOF, "", TokenLiteral::Nil, 1),
             ]
         );
     }
