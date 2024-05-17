@@ -1,8 +1,10 @@
+pub mod parser;
 pub mod scanner;
 pub mod token;
-pub mod parser;
+pub mod interpreter;
 
-use crate::common::errors::Error;
+use crate::{common::errors::Error, visitors::ast_printer::AstPrinter};
+use parser::Parser;
 use scanner::Scanner;
 
 /// This is a wrapper for running the source code
@@ -55,12 +57,49 @@ fn run(source: String) -> Result<(), Error> {
     println!("PROGRAM: {:?}", source);
 
     let mut scanner = Scanner::new(source);
-    scanner.scan_tokens()?;
+    let tokens = scanner.scan_tokens()?;
 
-    scanner
-        .tokens()
-        .into_iter()
-        .for_each(|token| println!("{:?}", token));
+    let mut parser = Parser::new(tokens);
+    let expr = parser.parse()?;
+
+    println!("{:?}", AstPrinter::new().print(expr));
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_e2e() {
+        let test_cases = [
+            ("(4 + 3)", "(group (+ 4 3))"),
+            (
+                "(4 + 3 * 12) - (7 / 5) == 13;",
+                "(== (- (group (+ 4 (* 3 12))) (group (/ 7 5))) 13)",
+            ),
+            (
+                "4 + 3 * 12 - 7 / 5 == 13;",
+                "(== (- (+ 4 (* 3 12)) (/ 7 5)) 13)",
+            ),
+        ];
+
+        for (inp, exp) in test_cases {
+            let mut scanner = Scanner::new(inp.to_string());
+
+            let res = scanner.scan_tokens();
+            assert!(res.is_ok());
+
+            let tokens = res.unwrap();
+
+            let mut parser = Parser::new(tokens);
+            let parsed_result = parser.parse();
+            assert!(parsed_result.is_ok());
+
+            let expr = parsed_result.unwrap();
+
+            assert_eq!(exp.to_string(), AstPrinter::new().print(expr));
+        }
+    }
 }

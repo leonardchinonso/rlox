@@ -58,3 +58,29 @@ impl Visitor<String> for AstPrinter {
         self.parenthesize(expr.operator().lexeme(), vec![expr.right()])
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use crate::rlox::token::{Token, TokenLiteral, TokenType};
+
+    use super::*;
+    
+    #[test]
+    fn test_ast_printer() {
+        let left = Expr::Unary(Unary::new(
+            Token::new(TokenType::Minus, "-", TokenLiteral::Nil, 1),
+            Expr::Literal(Literal::new(TokenLiteral::Integer(123))),
+        ));
+        let operator = Token::new(TokenType::Star, "*", TokenLiteral::Nil, 1);
+        let right = Expr::Grouping(Grouping::new(Expr::Literal(Literal::new(
+            TokenLiteral::Float(45.67),
+        ))));
+    
+        let expression = Expr::Binary(Binary::new(left, operator, right));
+        let ast_printer = AstPrinter::new();
+        let output = ast_printer.print(expression);
+    
+        assert_eq!("(* (- 123) (group 45.67))".to_string(), output);
+    }
+}

@@ -1,4 +1,4 @@
-use crate::lox::token::TokenLiteral;
+use crate::rlox::token::TokenLiteral;
 
 /// This represents a literal value used in expressions
 #[derive(Debug, Clone)]

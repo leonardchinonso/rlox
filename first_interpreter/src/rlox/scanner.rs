@@ -1,6 +1,6 @@
 use crate::{
     common::errors::Error,
-    lox::token::{Token, TokenLiteral, TokenType, KEYWORDS},
+    rlox::token::{Token, TokenLiteral, TokenType, KEYWORDS},
 };
 
 /// This represents a structure for scanning the source file
@@ -30,7 +30,10 @@ impl Scanner {
     }
 
     /// Scans a source file and drafts tokens from it
-    pub fn scan_tokens(&mut self) -> Result<(), Error> {
+    ///
+    /// Returns the scanned tokens if no error happened
+    /// Returns an Error of the ScannerError variant
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, Error> {
         let mut num_errors = 0usize;
         while !self.is_at_end() {
             // We are at the beginning of the next lexeme
@@ -44,7 +47,7 @@ impl Scanner {
             .push(Token::new(TokenType::EOF, "", TokenLiteral::Nil, self.line));
 
         if num_errors == 0 {
-            Ok(())
+            Ok(self.tokens())
         } else {
             Err(Error::report_generic(&format!(
                 "Found {} compilation errors",
@@ -334,9 +337,10 @@ mod tests {
     #[test]
     fn test_scan_tokens() {
         let mut scanner = Scanner::new(r#"var name = "Bob";"#.to_string());
-        assert!(scanner.scan_tokens().is_ok());
+        let res = scanner.scan_tokens();
+        assert!(res.is_ok());
         assert_eq!(
-            scanner.tokens(),
+            res.unwrap(),
             vec![
                 Token::new(TokenType::Var, "var", TokenLiteral::Nil, 1),
                 Token::new(TokenType::Identifier, "name", TokenLiteral::Nil, 1),

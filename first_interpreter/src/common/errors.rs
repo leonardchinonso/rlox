@@ -1,13 +1,13 @@
-use crate::lox::token::{Token, TokenType};
+use crate::rlox::token::{Token, TokenType};
 
 /// Represents an IO error
 #[derive(Debug)]
-struct IOError {
+pub struct IOError {
     message: String,
 }
 
 impl IOError {
-    pub fn new(message: &str) -> Self {
+    fn new(message: &str) -> Self {
         Self {
             message: message.to_string(),
         }
@@ -16,13 +16,13 @@ impl IOError {
 
 /// Represents a syntax error
 #[derive(Debug)]
-struct SyntaxError {
+pub struct SyntaxError {
     line: u32,
     message: String,
 }
 
 impl SyntaxError {
-    pub fn new(line: u32, message: &str) -> SyntaxError {
+    fn new(line: u32, message: &str) -> SyntaxError {
         SyntaxError {
             line,
             message: message.to_string(),
@@ -32,19 +32,15 @@ impl SyntaxError {
 
 /// Represents a syntax error
 #[derive(Debug)]
-struct ParseError {
+pub struct ParseError {
     token: Token,
-    line: u32,
-    // loc: String,
     message: String,
 }
 
 impl ParseError {
-    pub fn new(token: Token, line: u32, message: &str) -> ParseError {
+    fn new(token: Token, message: &str) -> ParseError {
         ParseError {
             token,
-            line,
-            // loc: loc.to_string(),
             message: message.to_string(),
         }
     }
@@ -73,12 +69,12 @@ impl std::fmt::Display for Error {
             Error::GenericError(err_msg) => write!(f, "Error: {:?}", err_msg),
             Error::ParseError(err) => match err.token.kind() {
                 TokenType::EOF => {
-                    write!(f, "[line {}] Error at end: {:?}", err.line, err.message)
+                    write!(f, "[line {}] Error at end: {:?}", err.token.line(), err.message)
                 }
                 _ => write!(
                     f,
-                    "[line {}] Error at {:?}', {:?}",
-                    err.line,
+                    "[line {}] Error at: '{:?}', {:?}",
+                    err.token.line(),
                     err.token.lexeme(),
                     err.message
                 ),
@@ -117,8 +113,8 @@ impl Error {
     }
 
     /// This logs a [`Error::ParseError`] with a given token and message
-    pub fn report_parse(token: Token, line: u32, message: &str) -> Self {
-        let err = Error::ParseError(ParseError::new(token, line, message));
+    pub fn report_parse(token: Token, message: &str) -> Self {
+        let err = Error::ParseError(ParseError::new(token, message));
         err.report();
         err
     }
