@@ -1,6 +1,6 @@
 use crate::{
-    errors::Error,
-    token::{Token, TokenLiteral, TokenType, KEYWORDS},
+    common::errors::Error,
+    lox::token::{Token, TokenLiteral, TokenType, KEYWORDS},
 };
 
 /// This represents a structure for scanning the source file
@@ -209,7 +209,7 @@ impl Scanner {
 
     /// Parses a numerical value
     pub fn parse_number(&mut self) {
-        let mut digit_is_integer = true;
+        let mut token_type = TokenType::Integer;
 
         while self.peek().is_numeric() {
             self.advance();
@@ -217,7 +217,7 @@ impl Scanner {
 
         // look for a fractional part
         if self.peek() == '.' && self.peek_next().is_numeric() {
-            digit_is_integer = false;
+            token_type = TokenType::Float;
 
             // consume the "."
             self.advance();
@@ -232,15 +232,13 @@ impl Scanner {
             .iter()
             .collect::<String>();
 
-        let token_literal = if digit_is_integer {
+        if token_type == TokenType::Integer {
             let parsed_digit: i32 = digit.parse().expect("should be a valid integer");
-            TokenLiteral::Integer(parsed_digit)
+            self.add_token(token_type, TokenLiteral::Integer(parsed_digit));
         } else {
             let parsed_digit: f64 = digit.parse().expect("should be a valid float");
-            TokenLiteral::Float(parsed_digit)
-        };
-
-        self.add_token(TokenType::Number, token_literal);
+            self.add_token(token_type, TokenLiteral::Float(parsed_digit));
+        }
     }
 
     /// Parses an identifier or keyword

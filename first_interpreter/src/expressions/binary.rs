@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::lox::token::Token;
 
 use super::expr::Expr;
 

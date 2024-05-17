@@ -21,8 +21,24 @@ impl Token {
         }
     }
 
+    /// Returns the lexeme
     pub fn lexeme(&self) -> String {
         self.lexeme.clone()
+    }
+
+    /// Returns the kind
+    pub fn kind(&self) -> TokenType {
+        self.kind.clone()
+    }
+
+    /// Returns the literal
+    pub fn literal(&self) -> TokenLiteral {
+        self.literal.clone()
+    }
+
+    /// Returns the line
+    pub fn line(&self) -> u32 {
+        self.line
     }
 }
 
@@ -61,7 +77,8 @@ pub enum TokenType {
     // Literals.
     Identifier,
     String,
-    Number,
+    Integer,
+    Float,
 
     // Keywords.
     And,
@@ -117,6 +134,8 @@ pub enum TokenLiteral {
     Integer(i32),
     /// Represents a float literal
     Float(f64),
+    /// Represents a boolean literal
+    Boolean(bool),
     /// Represents token without any literals
     Nil,
 }
@@ -125,8 +144,9 @@ impl std::fmt::Display for TokenLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TokenLiteral::String(v) => write!(f, "{:?}", v),
-            TokenLiteral::Integer(v) => write!(f, "{:?}", v),
+            TokenLiteral::Integer(v) => write!(f, "{}", v),
             TokenLiteral::Float(v) => write!(f, "{:?}", v),
+            TokenLiteral::Boolean(v) => write!(f, "{}", v),
             TokenLiteral::Nil => write!(f, "nil"),
         }
     }

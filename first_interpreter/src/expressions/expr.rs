@@ -25,6 +25,7 @@ pub enum Expr {
     Literal(Literal),
     Grouping(Grouping),
     Unary(Unary),
+    Invalid,
 }
 
 impl Expr {
@@ -36,6 +37,7 @@ impl Expr {
             Expr::Literal(expr) => visitor.visit_literal_expr(expr),
             Expr::Grouping(expr) => visitor.visit_grouping_expr(expr),
             Expr::Unary(expr) => visitor.visit_unary_expr(expr),
+            Expr::Invalid => panic!("Attempted to parse invalid expression"),
         }
     }
 }

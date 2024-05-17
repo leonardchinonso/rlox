@@ -1,5 +1,9 @@
-use crate::errors::Error;
-use crate::scanner::Scanner;
+pub mod scanner;
+pub mod token;
+pub mod parser;
+
+use crate::common::errors::Error;
+use scanner::Scanner;
 
 /// This is a wrapper for running the source code
 ///

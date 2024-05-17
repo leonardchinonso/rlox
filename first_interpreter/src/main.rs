@@ -1,12 +1,9 @@
 use expressions::{binary::Binary, expr::Expr, grouping::Grouping, literal::Literal, unary::Unary};
-use token::{Token, TokenLiteral, TokenType};
+use lox::token::{Token, TokenLiteral, TokenType};
 
 mod common;
-mod errors;
 mod expressions;
 mod lox;
-mod scanner;
-mod token;
 mod visitors;
 
 fn main() -> Result<(), &'static str> {

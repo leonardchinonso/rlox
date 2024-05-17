@@ -7,6 +7,7 @@ use crate::expressions::{
     unary::Unary,
 };
 
+/// Represents a printer for the abstract syntax tree
 pub struct AstPrinter;
 
 impl AstPrinter {
@@ -15,6 +16,7 @@ impl AstPrinter {
         AstPrinter {}
     }
 
+    /// Surrounds the given expression in paratheses
     fn parenthesize(&self, name: String, exprs: Vec<Expr>) -> String {
         let mut builder = String::new();
 
@@ -34,6 +36,7 @@ impl AstPrinter {
     }
 }
 
+/// Implements the Visitor trait for AstPrinter
 impl Visitor<String> for AstPrinter {
     fn visit_assign_expr(&self, _expr: &Assign) -> String {
         unimplemented!()
