@@ -2,6 +2,7 @@ use crate::{
     common::errors::Error,
     expressions::{binary::Binary, expr::Expr, grouping::Grouping, literal::Literal, unary::Unary},
     rlox::token::Token,
+    stmt::{Expression, Print, Stmt},
 };
 
 use super::token::{TokenLiteral, TokenType};
@@ -18,14 +19,14 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    /// Kicks off the parsing process
-    pub fn parse(&mut self) -> Result<Expr, Error> {
-        self.expression()
-    }
-
-    /// sets the tokens for the parser
-    pub fn set_tokens(&mut self, tokens: Vec<Token>) {
-        self.tokens = tokens;
+    /// Parses a series of statements, as many as it
+    /// can find until it hits the end of the input
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, Error> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement()?)
+        }
+        Ok(statements)
     }
 
     /// Returns true if any of the token types match the current token
@@ -72,6 +73,31 @@ impl Parser {
     }
 }
 
+/// Private methods for handling statements
+impl Parser {
+    /// Parses a single statement
+    fn statement(&mut self) -> Result<Stmt, Error> {
+        if self.match_token(vec![TokenType::Print]) {
+            return self.print_statement();
+        }
+        self.expression_statement()
+    }
+
+    /// Parses the print statement
+    fn print_statement(&mut self) -> Result<Stmt, Error> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after value.")?;
+        Ok(Stmt::Print(Print::new(value)))
+    }
+
+    /// Parses an expression statement
+    fn expression_statement(&mut self) -> Result<Stmt, Error> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
+        Ok(Stmt::Expression(Expression::new(expr)))
+    }
+}
+
 /// Private methods for handling expressions based on precedence
 impl Parser {
     /// Returns the equality expression
@@ -82,7 +108,7 @@ impl Parser {
     /// Returns the equality expression
     fn equality(&mut self) -> Result<Expr, Error> {
         let mut expr = self.comparison()?;
-        while self.match_token(vec![TokenType::Bang, TokenType::EqualEqual]) {
+        while self.match_token(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous();
             let right = self.comparison()?;
             expr = Expr::Binary(Binary::new(expr, operator, right));
@@ -161,7 +187,7 @@ impl Parser {
             self.consume(TokenType::RightParen, "Expected ')' after expression")?;
             return Ok(Expr::Grouping(Grouping::new(expr)));
         }
-        Err(Error::report_parse(self.peek(), "Expect expression."))
+        Err(Error::report_parse(self.peek(), "Expected expression."))
     }
 
     /// Consumes a token at the current position if it is the correct token
@@ -171,9 +197,7 @@ impl Parser {
         if self.check(token_type) {
             return Ok(self.advance());
         }
-        let token = self.peek();
-        let line = token.line();
-        Err(Error::report_parse(token, message))
+        Err(Error::report_parse(self.peek(), message))
     }
 
     /// Discards tokens until it finds a statement boundary

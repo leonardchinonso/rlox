@@ -1,11 +1,13 @@
+pub mod interpreter;
 pub mod parser;
 pub mod scanner;
 pub mod token;
-pub mod interpreter;
 
-use crate::{common::errors::Error, visitors::ast_printer::AstPrinter};
+use crate::{common::errors::Error, rlox::interpreter::Interpreter, stmt::print};
 use parser::Parser;
 use scanner::Scanner;
+
+pub use token::{Token, TokenLiteral, TokenType};
 
 /// This is a wrapper for running the source code
 ///
@@ -21,6 +23,9 @@ pub fn run_prompt() -> Result<(), &'static str> {
             }
             Ok(_) => {
                 let _ = run(inp);
+                // if let Err(err) = run(inp) {
+                //     eprintln!("Execution error: {:?}", err);
+                // };
             }
             Err(err) => {
                 eprintln!("Failed to read from interactive shell: {:?}", err);
@@ -37,6 +42,7 @@ pub fn run_prompt() -> Result<(), &'static str> {
 ///
 /// It starts the interpreter process after reading the source file
 pub fn run_file(file_path: &str) -> Result<(), Error> {
+    println!("File path: {:?}", file_path);
     let prog = match std::fs::read_to_string(file_path) {
         Ok(prog) => prog,
         Err(err) => {
@@ -54,15 +60,18 @@ pub fn run_file(file_path: &str) -> Result<(), Error> {
 
 /// This starts the compilation process for the source code
 fn run(source: String) -> Result<(), Error> {
-    println!("PROGRAM: {:?}", source);
+    println!("Running program...");
 
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
 
     let mut parser = Parser::new(tokens);
-    let expr = parser.parse()?;
+    let statements = parser.parse()?;
 
-    println!("{:?}", AstPrinter::new().print(expr));
+    println!("Statements: {:?}", statements);
+
+    let interpreter = Interpreter::new();
+    interpreter.interpret(statements)?;
 
     Ok(())
 }
@@ -85,7 +94,7 @@ mod tests {
             ),
         ];
 
-        for (inp, exp) in test_cases {
+        for (inp, _) in test_cases {
             let mut scanner = Scanner::new(inp.to_string());
 
             let res = scanner.scan_tokens();
@@ -96,10 +105,6 @@ mod tests {
             let mut parser = Parser::new(tokens);
             let parsed_result = parser.parse();
             assert!(parsed_result.is_ok());
-
-            let expr = parsed_result.unwrap();
-
-            assert_eq!(exp.to_string(), AstPrinter::new().print(expr));
         }
     }
 }

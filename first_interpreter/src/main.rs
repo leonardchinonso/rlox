@@ -1,5 +1,6 @@
 mod common;
 mod expressions;
+mod stmt;
 mod rlox;
 mod visitors;
 
@@ -10,7 +11,7 @@ fn main() -> Result<(), &'static str> {
             let _ = rlox::run_prompt();
         }
         2 => {
-            let _ = rlox::run_file(&args[0]);
+            let _ = rlox::run_file(&args[1]);
         }
         _ => {
             println!("Usage: rlox [script]");

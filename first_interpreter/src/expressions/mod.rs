@@ -4,7 +4,9 @@ pub mod binary;
 pub mod literal;
 pub mod grouping;
 pub mod unary;
+pub mod variable;
 
-fn test_main() {
-    // let object = 
-}
+pub use {
+    expr::Expr,
+    variable::Variable,
+};

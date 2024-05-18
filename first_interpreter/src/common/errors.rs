@@ -46,6 +46,22 @@ impl ParseError {
     }
 }
 
+/// Represents a syntax error
+#[derive(Debug)]
+pub struct RuntimeError {
+    token: Token,
+    message: String,
+}
+
+impl RuntimeError {
+    fn new(token: Token, message: &str) -> RuntimeError {
+        RuntimeError {
+            token,
+            message: message.to_string(),
+        }
+    }
+}
+
 /// Denotes what kinds of errors occurred
 /// Non-exhaustive, other kinds might be added in the future
 #[non_exhaustive]
@@ -59,6 +75,8 @@ pub enum Error {
     GenericError(String),
     /// Error used for parsing errors
     ParseError(ParseError),
+    /// Error used for runtime errors
+    RuntimeError(RuntimeError),
 }
 
 impl std::fmt::Display for Error {
@@ -69,7 +87,12 @@ impl std::fmt::Display for Error {
             Error::GenericError(err_msg) => write!(f, "Error: {:?}", err_msg),
             Error::ParseError(err) => match err.token.kind() {
                 TokenType::EOF => {
-                    write!(f, "[line {}] Error at end: {:?}", err.token.line(), err.message)
+                    write!(
+                        f,
+                        "[line {}] Error at end: {:?}",
+                        err.token.line(),
+                        err.message
+                    )
                 }
                 _ => write!(
                     f,
@@ -79,6 +102,7 @@ impl std::fmt::Display for Error {
                     err.message
                 ),
             },
+            Error::RuntimeError(err) => write!(f, "{:?}\n[line {}]", err.message, err.token.line()),
         }
     }
 }
@@ -115,6 +139,13 @@ impl Error {
     /// This logs a [`Error::ParseError`] with a given token and message
     pub fn report_parse(token: Token, message: &str) -> Self {
         let err = Error::ParseError(ParseError::new(token, message));
+        err.report();
+        err
+    }
+
+    /// This logs a [`Error::RuntimeError`] with a given token and message
+    pub fn report_runtime(token: Token, message: &str) -> Self {
+        let err = Error::RuntimeError(RuntimeError::new(token, message));
         err.report();
         err
     }

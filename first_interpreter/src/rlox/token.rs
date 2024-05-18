@@ -140,6 +140,19 @@ pub enum TokenLiteral {
     Nil,
 }
 
+impl TokenLiteral {
+    /// Prints the inner literal to console
+    pub fn print(&self) {
+        match self {
+            TokenLiteral::String(v) => println!("{:?}", v),
+            TokenLiteral::Integer(v) => println!("{:?}", v),
+            TokenLiteral::Float(v) => println!("{:?}", v),
+            TokenLiteral::Boolean(v) => println!("{:?}", v),
+            TokenLiteral::Nil => println!("nil"),
+        }
+    }
+}
+
 impl std::fmt::Display for TokenLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

@@ -1,96 +1,383 @@
-use crate::expressions::expr::{Expr, Visitor};
-use crate::expressions::literal::Literal;
+use crate::common::errors::Error;
+use crate::expressions::expr::{Expr, Visitor as ExprVisitor};
 use crate::rlox::token::{TokenLiteral, TokenType};
+use crate::stmt::stmt::Visitor as StmtVisitor;
+use crate::stmt::Stmt;
 
-use std::any::{Any, TypeId};
-
-struct Interpreter;
+pub struct Interpreter;
 
 impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {}
     }
 
+    /// Begins the interpretation and evaluation process
+    pub fn interpret(&self, statements: Vec<Stmt>) -> Result<(), Error> {
+        for statement in statements {
+            self.execute(statement)?;
+        }
+        Ok(())
+    }
+
+    /// Executes a given statement
+    pub fn execute(&self, stmt: Stmt) -> Result<(), Error> {
+        stmt.accept(self)
+    }
+
     /// Evaluates a given expression to a literal
-    pub fn evaluate(&self, expr: Expr) -> Box<dyn Any> {
-        Box::new(expr.accept(self))
+    pub fn evaluate(&self, expr: Expr) -> Result<TokenLiteral, Error> {
+        Ok(expr.accept(self)?)
     }
 }
 
-impl Visitor<Box<dyn Any>> for Interpreter {
-    fn visit_assign_expr(&self, expr: &crate::expressions::assign::Assign) -> Box<dyn Any> {
-        todo!()
+impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
+    fn visit_assign_expr(
+        &self,
+        _expr: &crate::expressions::assign::Assign,
+    ) -> Result<TokenLiteral, Error> {
+        unimplemented!()
     }
 
-    fn visit_binary_expr(&self, expr: &crate::expressions::binary::Binary) -> Box<dyn Any> {
-        let left = self.evaluate(expr.left());
-        let left = *left
-            .downcast::<Expr>()
-            .expect("unary right should be an expression");
-
-        let right = self.evaluate(expr.right());
-        let right = *right
-            .downcast::<Expr>()
-            .expect("unary right should be an expression");
+    fn visit_binary_expr(
+        &self,
+        expr: &crate::expressions::binary::Binary,
+    ) -> Result<TokenLiteral, Error> {
+        let left = self.evaluate(expr.left())?;
+        let right = self.evaluate(expr.right())?;
 
         match expr.operator().kind() {
             TokenType::Minus => match left {
-                Expr::Literal(l) => match l.value() {
-                    TokenLiteral::Integer(v1) => {
-                        if let Expr::Literal(l) = right {
-                            if let TokenLiteral::Integer(v2) = l.value() {
-                                return Box::new(v1 - v2);
-                            }
-                            panic!("cannot apply the MINUS operator on type {:?}", l.value());
-                        }
+                TokenLiteral::Integer(l_val) => {
+                    if let TokenLiteral::Integer(r_val) = right {
+                        return Ok(TokenLiteral::Integer(l_val - r_val));
                     }
-                    TokenLiteral::Float(v) => Box::new(-v),
-                    _ => panic!("cannot apply the MINUS operator on type {:?}", l.value()),
-                },
-                _ => panic!("cannot apply the MINUS operator on expression {:?}", right),
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("MINUS", None),
+                    ))
+                }
+                TokenLiteral::Float(l_val) => {
+                    if let TokenLiteral::Float(r_val) = right {
+                        return Ok(TokenLiteral::Float(l_val - r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("MINUS", None),
+                    ))
+                }
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    &get_runtime_err_msg("MINUS", Some("numeric")),
+                )),
             },
-            TokenType::Bang => match right {
-                Expr::Literal(l) => match l.value() {
-                    TokenLiteral::Boolean(v) => Box::new(!v),
-                    _ => panic!("cannot apply the BANG operator on type {:?}", l.value()),
-                },
-                _ => panic!("cannot apply the BANG operator on expression {:?}", right),
+            TokenType::Slash => match left {
+                TokenLiteral::Integer(l_val) => {
+                    if let TokenLiteral::Integer(r_val) = right {
+                        if r_val == 0 {
+                            panic!("division by zero not allowed!");
+                        }
+                        return Ok(TokenLiteral::Integer(l_val / r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("DIVISION", None),
+                    ))
+                }
+                TokenLiteral::Float(l_val) => {
+                    if let TokenLiteral::Float(r_val) = right {
+                        if r_val == 0f64 {
+                            panic!("division by zero not allowed!");
+                        }
+                        return Ok(TokenLiteral::Float(l_val / r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("DIVISION", None),
+                    ))
+                }
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    &get_runtime_err_msg("DIVISION", Some("numeric")),
+                )),
             },
-            // this part of the code is unreachable since MINUS and BANG
-            // are the only unary operators
+            TokenType::Star => match left {
+                TokenLiteral::Integer(l_val) => {
+                    if let TokenLiteral::Integer(r_val) = right {
+                        return Ok(TokenLiteral::Integer(l_val * r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("PRODUCT", None),
+                    ))
+                }
+                TokenLiteral::Float(l_val) => {
+                    if let TokenLiteral::Float(r_val) = right {
+                        return Ok(TokenLiteral::Float(l_val * r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("PRODUCT", None),
+                    ))
+                }
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    &get_runtime_err_msg("PRODUCT", Some("numeric")),
+                )),
+            },
+            TokenType::Plus => match left {
+                TokenLiteral::Integer(l_val) => {
+                    if let TokenLiteral::Integer(r_val) = right {
+                        return Ok(TokenLiteral::Integer(l_val + r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("ADD", None),
+                    ))
+                }
+                TokenLiteral::Float(l_val) => {
+                    if let TokenLiteral::Float(r_val) = right {
+                        return Ok(TokenLiteral::Float(l_val + r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("ADD", None),
+                    ))
+                }
+                TokenLiteral::String(mut l_val) => {
+                    if let TokenLiteral::String(r_val) = right {
+                        l_val.push_str(&r_val);
+                        return Ok(TokenLiteral::String(l_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("ADD", None),
+                    ))
+                }
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    &get_runtime_err_msg("ADD", Some("both numeric or both string")),
+                )),
+            },
+            TokenType::Greater => match left {
+                TokenLiteral::Integer(l_val) => {
+                    if let TokenLiteral::Integer(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val > r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("GREATER THAN", None),
+                    ))
+                }
+                TokenLiteral::Float(l_val) => {
+                    if let TokenLiteral::Float(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val > r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("GREATER THAN", None),
+                    ))
+                }
+                TokenLiteral::String(l_val) => {
+                    if let TokenLiteral::String(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val > r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("GREATER THAN", None),
+                    ))
+                }
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    &get_runtime_err_msg("GREATER THAN", Some("valid")),
+                )),
+            },
+            TokenType::GreaterEqual => match left {
+                TokenLiteral::Integer(l_val) => {
+                    if let TokenLiteral::Integer(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val >= r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("GREATER THAN OR EQUAL", None),
+                    ))
+                }
+                TokenLiteral::Float(l_val) => {
+                    if let TokenLiteral::Float(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val >= r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("GREATER THAN OR EQUAL", None),
+                    ))
+                }
+                TokenLiteral::String(l_val) => {
+                    if let TokenLiteral::String(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val >= r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("GREATER THAN OR EQUAL", None),
+                    ))
+                }
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    &get_runtime_err_msg("GREATER THAN OR EQUAL", Some("valid")),
+                )),
+            },
+            TokenType::Less => match left {
+                TokenLiteral::Integer(l_val) => {
+                    if let TokenLiteral::Integer(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val < r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("LESS THAN", None),
+                    ))
+                }
+                TokenLiteral::Float(l_val) => {
+                    if let TokenLiteral::Float(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val < r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("LESS THAN", None),
+                    ))
+                }
+                TokenLiteral::String(l_val) => {
+                    if let TokenLiteral::String(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val < r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("LESS THAN", None),
+                    ))
+                }
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    &get_runtime_err_msg("LESS THAN", Some("valid")),
+                )),
+            },
+            TokenType::LessEqual => match left {
+                TokenLiteral::Integer(l_val) => {
+                    if let TokenLiteral::Integer(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val <= r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("LESS THAN OR EQUAL", None),
+                    ))
+                }
+                TokenLiteral::Float(l_val) => {
+                    if let TokenLiteral::Float(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val <= r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("LESS THAN OR EQUAL", None),
+                    ))
+                }
+                TokenLiteral::String(l_val) => {
+                    if let TokenLiteral::String(r_val) = right {
+                        return Ok(TokenLiteral::Boolean(l_val <= r_val));
+                    }
+                    Err(Error::report_runtime(
+                        expr.operator().clone(),
+                        &get_runtime_err_msg("LESS THAN OR EQUAL", None),
+                    ))
+                }
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    &get_runtime_err_msg("LESS THAN OR EQUAL", Some("valid")),
+                )),
+            },
+            TokenType::BangEqual => match left {
+                // Instead of panicking for distinct types, return false.
+                // The language should allow equality comparison for distinct types.
+                TokenLiteral::Integer(l_val) => match right {
+                    TokenLiteral::Integer(r_val) => Ok(TokenLiteral::Boolean(l_val != r_val)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+                TokenLiteral::Float(l_val) => match right {
+                    TokenLiteral::Float(r_val) => Ok(TokenLiteral::Boolean(l_val != r_val)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+                TokenLiteral::String(l_val) => match right {
+                    TokenLiteral::String(r_val) => Ok(TokenLiteral::Boolean(l_val != r_val)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+                TokenLiteral::Boolean(l_val) => match right {
+                    TokenLiteral::Boolean(r_val) => Ok(TokenLiteral::Boolean(l_val != r_val)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+                TokenLiteral::Nil => match right {
+                    TokenLiteral::Nil => Ok(TokenLiteral::Boolean(true)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+            },
+            TokenType::EqualEqual => match left {
+                // Instead of panicking for distinct types, return false.
+                // The language should allow equality comparison for distinct types.
+                TokenLiteral::Integer(l_val) => match right {
+                    TokenLiteral::Integer(r_val) => Ok(TokenLiteral::Boolean(l_val == r_val)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+                TokenLiteral::Float(l_val) => match right {
+                    TokenLiteral::Float(r_val) => Ok(TokenLiteral::Boolean(l_val == r_val)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+                TokenLiteral::String(l_val) => match right {
+                    TokenLiteral::String(r_val) => Ok(TokenLiteral::Boolean(l_val == r_val)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+                TokenLiteral::Boolean(l_val) => match right {
+                    TokenLiteral::Boolean(r_val) => Ok(TokenLiteral::Boolean(l_val == r_val)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+                TokenLiteral::Nil => match right {
+                    TokenLiteral::Nil => Ok(TokenLiteral::Boolean(true)),
+                    _ => Ok(TokenLiteral::Boolean(false)),
+                },
+            },
             _ => unreachable!(),
         }
     }
 
-    fn visit_grouping_expr(&self, expr: &crate::expressions::grouping::Grouping) -> Box<dyn Any> {
-        self.evaluate(expr.expression())
+    fn visit_grouping_expr(
+        &self,
+        expr: &crate::expressions::grouping::Grouping,
+    ) -> Result<TokenLiteral, Error> {
+        Ok(self.evaluate(expr.expression())?)
     }
 
-    fn visit_literal_expr(&self, expr: &crate::expressions::literal::Literal) -> Box<dyn Any> {
-        Box::new(expr.value())
+    fn visit_literal_expr(
+        &self,
+        expr: &crate::expressions::literal::Literal,
+    ) -> Result<TokenLiteral, Error> {
+        Ok(expr.value())
     }
 
-    fn visit_unary_expr(&self, expr: &crate::expressions::unary::Unary) -> Box<dyn Any> {
-        let right = self.evaluate(expr.right());
-        let right = *right
-            .downcast::<Expr>()
-            .expect("unary right should be an expression");
+    fn visit_unary_expr(
+        &self,
+        expr: &crate::expressions::unary::Unary,
+    ) -> Result<TokenLiteral, Error> {
+        let right = self.evaluate(expr.right())?;
 
         match expr.operator().kind() {
             TokenType::Minus => match right {
-                Expr::Literal(l) => match l.value() {
-                    TokenLiteral::Integer(v) => Box::new(-v),
-                    TokenLiteral::Float(v) => Box::new(-v),
-                    _ => panic!("cannot apply the MINUS operator on type {:?}", l.value()),
-                },
-                _ => panic!("cannot apply the MINUS operator on expression {:?}", right),
+                TokenLiteral::Integer(v) => Ok(TokenLiteral::Integer(-v)),
+                TokenLiteral::Float(v) => Ok(TokenLiteral::Float(-v)),
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    "MINUS must have a numeric operand",
+                )),
             },
             TokenType::Bang => match right {
-                Expr::Literal(l) => match l.value() {
-                    TokenLiteral::Boolean(v) => Box::new(!v),
-                    _ => panic!("cannot apply the BANG operator on type {:?}", l.value()),
-                },
-                _ => panic!("cannot apply the BANG operator on expression {:?}", right),
+                TokenLiteral::Boolean(v) => Ok(TokenLiteral::Boolean(!v)),
+                TokenLiteral::Nil => Ok(TokenLiteral::Boolean(true)),
+                _ => Err(Error::report_runtime(
+                    expr.operator().clone(),
+                    "NEGATION must have a valid operand",
+                )),
             },
             // this part of the code is unreachable since MINUS and BANG
             // are the only unary operators
@@ -99,35 +386,51 @@ impl Visitor<Box<dyn Any>> for Interpreter {
     }
 }
 
-mod handlers {
-    use super::*;
+impl StmtVisitor<Result<(), Error>> for Interpreter {
+    fn visit_block_stmt(&self, stmt: &crate::stmt::Block) -> Result<(), Error> {
+        todo!()
+    }
 
-    // Handlers for the different expressions
-    fn handle_binary_ops_for_binary_expr(left: Expr, op: TokenType, right: Expr) -> Box<dyn Any> {
-        match op {
-            TokenType::Minus => match left {
-                Expr::Literal(lit) => match lit.value() {
-                    TokenLiteral::Integer(l_val) => {
-                        match right {
-                            Expr::Literal(_) => {
-                                match lit.value() {
-                                    TokenLiteral::Integer(r_val) => Box::new(l_val - r_val),
-                                    _ => {
-                                        panic!("cannot subtract {:?} from INTEGER", lit.value());
-                                    }
-                                }
-                            },
-                            _ => panic!("")
-                        }
-                    }
-                    TokenLiteral::Float(v) => Box::new(-v),
-                    _ => panic!("cannot apply the MINUS operator on type {:?}", l.value()),
-                },
-                _ => panic!("cannot apply the MINUS operator on expression {:?}", right),
-            },
-            TokenType::Slash => {}
-            TokenType::Star => {}
-            _ => {}
-        }
+    fn visit_class_stmt(&self, stmt: &crate::stmt::Class) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn visit_expression_stmt(&self, stmt: &crate::stmt::Expression) -> Result<(), Error> {
+        self.evaluate(stmt.expression())?;
+        Ok(())
+    }
+
+    fn visit_function_stmt(&self, stmt: &crate::stmt::Function) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn visit_if_stmt(&self, stmt: &crate::stmt::If) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn visit_print_stmt(&self, stmt: &crate::stmt::Print) -> Result<(), Error> {
+        let value = self.evaluate(stmt.expression())?;
+        value.print();
+        Ok(())
+    }
+
+    fn visit_return_stmt(&self, stmt: &crate::stmt::Return) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn visit_var_stmt(&self, stmt: &crate::stmt::Var) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn visit_while_stmt(&self, stmt: &crate::stmt::While) -> Result<(), Error> {
+        todo!()
+    }
+}
+
+fn get_runtime_err_msg(operator: &str, actor: Option<&str>) -> String {
+    if actor.is_some() {
+        format!("{} must have {} operands", operator, actor.unwrap())
+    } else {
+        format!("Cannot use {} on two distinct types", operator)
     }
 }
