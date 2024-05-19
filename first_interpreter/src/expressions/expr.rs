@@ -1,4 +1,6 @@
-use super::{assign::Assign, binary::Binary, grouping::Grouping, literal::Literal, unary::Unary};
+use super::{
+    assign::Assign, binary::Binary, grouping::Grouping, literal::Literal, unary::Unary, Variable,
+};
 
 /// Trait for a structure implementing all the methods to
 /// handle different expressions
@@ -14,7 +16,7 @@ pub trait Visitor<R> {
     // fn visit_super_expr(&self, expr: &Super) -> R;
     // fn visit_this_expr(&self, expr: &This) -> R;
     fn visit_unary_expr(&self, expr: &Unary) -> R;
-    // fn visit_variable_expr(&self, expr: &Variable) -> R;
+    fn visit_variable_expr(&self, expr: &Variable) -> R;
 }
 
 /// Represents all forms of expressions using wrappers
@@ -25,6 +27,7 @@ pub enum Expr {
     Literal(Literal),
     Grouping(Grouping),
     Unary(Unary),
+    Variable(Variable),
 }
 
 impl Expr {
@@ -36,6 +39,7 @@ impl Expr {
             Expr::Literal(expr) => visitor.visit_literal_expr(expr),
             Expr::Grouping(expr) => visitor.visit_grouping_expr(expr),
             Expr::Unary(expr) => visitor.visit_unary_expr(expr),
+            Expr::Variable(expr) => visitor.visit_variable_expr(expr),
         }
     }
 }

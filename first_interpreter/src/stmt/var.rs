@@ -4,12 +4,12 @@ use crate::{expressions::Expr, rlox::Token};
 #[derive(Debug, Clone)]
 pub struct Var {
     name: Token,
-    initializer: Expr,
+    initializer: Option<Expr>,
 }
 
 impl Var {
     /// Construct a new variable Var
-    pub fn new(name: Token, initializer: Expr) -> Var {
+    pub fn new(name: Token, initializer: Option<Expr>) -> Var {
         Var { name, initializer }
     }
 
@@ -19,7 +19,7 @@ impl Var {
     }
 
     /// Returns the initializer
-    pub fn initializer(&self) -> Expr {
+    pub fn initializer(&self) -> Option<Expr> {
         self.initializer.clone()
     }
 }

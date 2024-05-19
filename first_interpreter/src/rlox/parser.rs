@@ -1,8 +1,10 @@
 use crate::{
     common::errors::Error,
-    expressions::{binary::Binary, expr::Expr, grouping::Grouping, literal::Literal, unary::Unary},
+    expressions::{
+        binary::Binary, expr::Expr, grouping::Grouping, literal::Literal, unary::Unary, Variable,
+    },
     rlox::token::Token,
-    stmt::{Expression, Print, Stmt},
+    stmt::{Expression, Print, Stmt, Var},
 };
 
 use super::token::{TokenLiteral, TokenType};
@@ -24,7 +26,7 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>, Error> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.statement()?)
+            statements.push(self.declaration()?)
         }
         Ok(statements)
     }
@@ -75,6 +77,31 @@ impl Parser {
 
 /// Private methods for handling statements
 impl Parser {
+    /// Parses a series of statements when called repeatedly
+    fn declaration(&mut self) -> Result<Stmt, Error> {
+        if self.match_token(vec![TokenType::Var]) {
+            match self.var_declaration() {
+                Ok(v) => return Ok(v),
+                Err(err) => {
+                    // skip further tokens in this statement and
+                    // consume the next tokens
+                    self.synchronize();
+                    return Err(err);
+                }
+            }
+        }
+
+        match self.statement() {
+            Ok(stmt) => Ok(stmt),
+            Err(err) => {
+                // skip further tokens in this statement and
+                // consume the next tokens
+                self.synchronize();
+                return Err(err);
+            }
+        }
+    }
+
     /// Parses a single statement
     fn statement(&mut self) -> Result<Stmt, Error> {
         if self.match_token(vec![TokenType::Print]) {
@@ -95,6 +122,21 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Ok(Stmt::Expression(Expression::new(expr)))
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, Error> {
+        let name = self.consume(TokenType::Identifier, "Expected variable name.")?;
+
+        let mut initializer = None;
+        if self.match_token(vec![TokenType::Equal]) {
+            initializer = Some(self.expression()?);
+        }
+
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ';' after variable declaration",
+        )?;
+        Ok(Stmt::Var(Var::new(name, initializer)))
     }
 }
 
@@ -182,6 +224,9 @@ impl Parser {
         ]) {
             return Ok(Expr::Literal(Literal::new(self.previous().literal())));
         }
+        if self.match_token(vec![TokenType::Identifier]) {
+            return Ok(Expr::Variable(Variable::new(self.previous())));
+        }
         if self.match_token(vec![TokenType::LeftParen]) {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expected ')' after expression")?;
@@ -230,23 +275,4 @@ impl Parser {
             self.advance();
         }
     }
-
-    // TODO: use a general function receiver to handle the different expressions
-    // fn equality(&mut self) -> Expr {
-    //     let token_matches = vec![TokenType::Bang, TokenType::EqualEqual];
-    //     self.gen(token_matches, self.comparison)
-    // }
-
-    // fn gen<F>(&mut self, token_matches: Vec<TokenType>, mut actor: F) -> Expr
-    // where
-    //     F: FnMut(&mut Self) -> Expr,
-    // {
-    //     let mut expr = actor(&mut self);
-    //     while self.match_token(token_matches) {
-    //         let operator = self.previous();
-    //         let right = actor(&mut self);
-    //         expr = Expr::Binary(Binary::new(expr, operator, right))
-    //     }
-    //     expr
-    // }
 }
