@@ -1,7 +1,8 @@
 use crate::{
     common::errors::Error,
     expressions::{
-        binary::Binary, expr::Expr, grouping::Grouping, literal::Literal, unary::Unary, Variable,
+        assign::Assign, binary::Binary, expr::Expr, grouping::Grouping, literal::Literal,
+        unary::Unary, Variable,
     },
     rlox::token::Token,
     stmt::{Expression, Print, Stmt, Var},
@@ -144,7 +145,27 @@ impl Parser {
 impl Parser {
     /// Returns the equality expression
     fn expression(&mut self) -> Result<Expr, Error> {
-        self.equality()
+        self.assignment()
+    }
+
+    /// Figure out if the statement is an assignment
+    /// or an expression.
+    /// Returns an expression of the specific type
+    fn assignment(&mut self) -> Result<Expr, Error> {
+        let expr = self.equality()?;
+
+        if self.match_token(vec![TokenType::Equal]) {
+            let equals = self.previous();
+            let value = self.assignment()?;
+
+            if let Expr::Variable(v) = expr {
+                return Ok(Expr::Assign(Assign::new(v.name().clone(), value)));
+            }
+
+            return Err(Error::report_parse(equals, "Invalid assignment target."));
+        }
+
+        return Ok(expr);
     }
 
     /// Returns the equality expression

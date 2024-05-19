@@ -4,15 +4,18 @@ use crate::rlox::token::{TokenLiteral, TokenType};
 use crate::stmt::stmt::Visitor as StmtVisitor;
 use crate::stmt::Stmt;
 
-pub struct Interpreter;
+use super::environment::Environment;
+
+pub struct Interpreter(Environment);
 
 impl Interpreter {
     pub fn new() -> Interpreter {
-        Interpreter {}
+        let environment = Environment::new();
+        Interpreter(environment)
     }
 
     /// Begins the interpretation and evaluation process
-    pub fn interpret(&self, statements: Vec<Stmt>) -> Result<(), Error> {
+    pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<(), Error> {
         for statement in statements {
             self.execute(statement)?;
         }
@@ -20,7 +23,7 @@ impl Interpreter {
     }
 
     /// Executes a given statement
-    pub fn execute(&self, stmt: Stmt) -> Result<(), Error> {
+    pub fn execute(&mut self, stmt: Stmt) -> Result<(), Error> {
         stmt.accept(self)
     }
 
@@ -384,6 +387,13 @@ impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
             _ => unreachable!(),
         }
     }
+
+    fn visit_variable_expr(
+        &self,
+        expr: &crate::expressions::Variable,
+    ) -> Result<TokenLiteral, Error> {
+        self.0.get(expr.name().clone())
+    }
 }
 
 impl StmtVisitor<Result<(), Error>> for Interpreter {
@@ -418,8 +428,10 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
         todo!()
     }
 
-    fn visit_var_stmt(&self, stmt: &crate::stmt::Var) -> Result<(), Error> {
-        todo!()
+    fn visit_var_stmt(&mut self, stmt: &crate::stmt::Var) -> Result<(), Error> {
+        let value = self.evaluate(stmt.initializer())?;
+        self.0.define(stmt.name().lexeme(), value);
+        Ok(())
     }
 
     fn visit_while_stmt(&self, stmt: &crate::stmt::While) -> Result<(), Error> {

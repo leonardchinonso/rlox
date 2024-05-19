@@ -2,6 +2,7 @@ pub mod interpreter;
 pub mod parser;
 pub mod scanner;
 pub mod token;
+pub mod environment;
 
 use crate::{common::errors::Error, rlox::interpreter::Interpreter, stmt::print};
 use parser::Parser;
@@ -70,7 +71,7 @@ fn run(source: String) -> Result<(), Error> {
 
     println!("Statements: {:?}", statements);
 
-    let interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new();
     interpreter.interpret(statements)?;
 
     Ok(())

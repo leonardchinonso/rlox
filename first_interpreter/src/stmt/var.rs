@@ -1,15 +1,19 @@
-use crate::{expressions::Expr, rlox::Token};
+use crate::{
+    expressions::{literal::Literal, Expr},
+    rlox::{Token, TokenLiteral},
+};
 
 /// Represents a Return statement
 #[derive(Debug, Clone)]
 pub struct Var {
     name: Token,
-    initializer: Option<Expr>,
+    initializer: Expr,
 }
 
 impl Var {
     /// Construct a new variable Var
     pub fn new(name: Token, initializer: Option<Expr>) -> Var {
+        let initializer = initializer.unwrap_or(Expr::Literal(Literal::new(TokenLiteral::Nil)));
         Var { name, initializer }
     }
 
@@ -19,7 +23,7 @@ impl Var {
     }
 
     /// Returns the initializer
-    pub fn initializer(&self) -> Option<Expr> {
+    pub fn initializer(&self) -> Expr {
         self.initializer.clone()
     }
 }

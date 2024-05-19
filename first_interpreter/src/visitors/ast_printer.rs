@@ -57,15 +57,18 @@ impl Visitor<String> for AstPrinter {
     fn visit_unary_expr(&self, expr: &Unary) -> String {
         self.parenthesize(expr.operator().lexeme(), vec![expr.right()])
     }
-}
 
+    fn visit_variable_expr(&self, _expr: &crate::expressions::Variable) -> String {
+        unimplemented!()
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use crate::rlox::token::{Token, TokenLiteral, TokenType};
 
     use super::*;
-    
+
     #[test]
     fn test_ast_printer() {
         let left = Expr::Unary(Unary::new(
@@ -76,11 +79,11 @@ mod tests {
         let right = Expr::Grouping(Grouping::new(Expr::Literal(Literal::new(
             TokenLiteral::Float(45.67),
         ))));
-    
+
         let expression = Expr::Binary(Binary::new(left, operator, right));
         let ast_printer = AstPrinter::new();
         let output = ast_printer.print(expression);
-    
+
         assert_eq!("(* (- 123) (group 45.67))".to_string(), output);
     }
 }

@@ -10,7 +10,7 @@ pub trait Visitor<R> {
     fn visit_if_stmt(&self, stmt: &If) -> R;
     fn visit_print_stmt(&self, stmt: &Print) -> R;
     fn visit_return_stmt(&self, stmt: &Return) -> R;
-    fn visit_var_stmt(&self, stmt: &Var) -> R;
+    fn visit_var_stmt(&mut self, stmt: &Var) -> R;
     fn visit_while_stmt(&self, stmt: &While) -> R;
 }
 
@@ -30,7 +30,7 @@ pub enum Stmt {
 
 impl Stmt {
     /// Accepts the visitor structure to perform a statement
-    pub fn accept<R>(&self, visitor: &dyn Visitor<R>) -> R {
+    pub fn accept<R>(&self, visitor: &mut dyn Visitor<R>) -> R {
         match self {
             Stmt::Block(stmt) => visitor.visit_block_stmt(stmt),
             Stmt::Class(stmt) => visitor.visit_class_stmt(stmt),
