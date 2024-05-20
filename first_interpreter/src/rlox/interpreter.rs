@@ -418,6 +418,59 @@ impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
     ) -> Result<TokenLiteral, Error> {
         self.0.get(&expr.name())
     }
+
+    fn visit_logical_expr(
+        &self,
+        expr: &crate::expressions::Logical,
+    ) -> Result<TokenLiteral, Error> {
+        let left = self.evaluate(expr.left())?;
+
+        // short circuit the boolean operation if its OR or AND
+        if expr.operator().kind() == TokenType::Or {
+            match left {
+                TokenLiteral::Boolean(is_true) => match is_true {
+                    true => return Ok(left), // return true if one is true
+                    false => {
+                        let r_bool = self.evaluate(expr.right())?;
+                        if matches!(r_bool, TokenLiteral::Boolean(_)) {
+                            return Ok(r_bool);
+                        }
+                        return Err(Error::report_generic(
+                            "Right operand must be a boolean value",
+                        ));
+                    }
+                },
+                _ => {
+                    return Err(Error::report_generic(
+                        "Left operand must be a boolean value",
+                    ))
+                }
+            }
+        } else if expr.operator().kind() == TokenType::And {
+            match left {
+                TokenLiteral::Boolean(is_true) => match is_true {
+                    true => {
+                        // only return true if both are true
+                        let r_bool = self.evaluate(expr.right())?;
+                        if matches!(r_bool, TokenLiteral::Boolean(_)) {
+                            return Ok(r_bool);
+                        }
+                        return Err(Error::report_generic(
+                            "Right operand must be a boolean value",
+                        ));
+                    }
+                    false => return Ok(left),
+                },
+                _ => {
+                    return Err(Error::report_generic(
+                        "Left operand must be a boolean value",
+                    ))
+                }
+            }
+        }
+
+        unreachable!()
+    }
 }
 
 impl StmtVisitor<Result<(), Error>> for Interpreter {
@@ -440,7 +493,20 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
     }
 
     fn visit_if_stmt(&mut self, stmt: &crate::stmt::If) -> Result<(), Error> {
-        todo!()
+        let value = self.evaluate(stmt.condition())?;
+        if let TokenLiteral::Boolean(cond_is_true) = value {
+            if cond_is_true {
+                self.execute(stmt.then_branch())?;
+                return Ok(());
+            } else if stmt.else_branch().is_some() {
+                self.execute(stmt.else_branch().unwrap())?;
+                return Ok(());
+            }
+            return Ok(());
+        }
+        Err(Error::report_generic(
+            "Condition in if statement must evaluate to 'true' or 'false'",
+        ))
     }
 
     fn visit_print_stmt(&mut self, stmt: &crate::stmt::Print) -> Result<(), Error> {

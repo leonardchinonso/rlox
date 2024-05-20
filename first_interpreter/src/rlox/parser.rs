@@ -2,10 +2,10 @@ use crate::{
     common::errors::Error,
     expressions::{
         assign::Assign, binary::Binary, expr::Expr, grouping::Grouping, literal::Literal,
-        unary::Unary, Variable,
+        unary::Unary, Logical, Variable,
     },
     rlox::token::Token,
-    stmt::{Block, Expression, Print, Stmt, Var},
+    stmt::{Block, Expression, If, Print, Stmt, Var},
 };
 
 use super::token::{TokenLiteral, TokenType};
@@ -109,7 +109,10 @@ impl Parser {
             return self.print_statement();
         }
         if self.match_token(vec![TokenType::LeftBrace]) {
-            return Ok(Stmt::Block(Block::new(self.block()?)));
+            return self.block_statement();
+        }
+        if self.match_token(vec![TokenType::If]) {
+            return self.if_statement();
         }
         self.expression_statement()
     }
@@ -122,13 +125,29 @@ impl Parser {
     }
 
     /// Parses a block of statements
-    fn block(&mut self) -> Result<Vec<Stmt>, Error> {
+    fn block_statement(&mut self) -> Result<Stmt, Error> {
         let mut statements = Vec::new();
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
             statements.push(self.declaration()?);
         }
-        self.consume(TokenType::RightBrace, "Expected '}' after block.");
-        Ok(statements)
+        self.consume(TokenType::RightBrace, "Expected '}' after block.")?;
+        Ok(Stmt::Block(Block::new(statements)))
+    }
+
+    /// Parses an if statement
+    fn if_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'if'.")?;
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen, "Expected ')' after if condition.")?;
+
+        let then_branch = self.statement()?;
+
+        let mut else_branch = None;
+        if self.match_token(vec![TokenType::Else]) {
+            else_branch = Some(self.statement()?);
+        }
+
+        Ok(Stmt::If(If::new(condition, then_branch, else_branch)))
     }
 
     /// Parses an expression statement
@@ -165,7 +184,7 @@ impl Parser {
     /// or an expression.
     /// Returns an expression of the specific type
     fn assignment(&mut self) -> Result<Expr, Error> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
 
         if self.match_token(vec![TokenType::Equal]) {
             let equals = self.previous();
@@ -179,6 +198,32 @@ impl Parser {
         }
 
         return Ok(expr);
+    }
+
+    /// Parses a series of expressions evaluating OR
+    fn or(&mut self) -> Result<Expr, Error> {
+        let mut expr = self.and()?;
+
+        while self.match_token(vec![TokenType::Or]) {
+            let operator = self.previous();
+            let right = self.and()?;
+            expr = Expr::Logical(Logical::new(expr, operator, right))
+        }
+
+        Ok(expr)
+    }
+
+    /// Parses a series of expressions evaluating AND
+    fn and(&mut self) -> Result<Expr, Error> {
+        let mut expr = self.equality()?;
+
+        while self.match_token(vec![TokenType::Or]) {
+            let operator = self.previous();
+            let right = self.equality()?;
+            expr = Expr::Logical(Logical::new(expr, operator, right))
+        }
+
+        Ok(expr)
     }
 
     /// Returns the equality expression

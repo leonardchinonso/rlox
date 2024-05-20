@@ -1,12 +1,13 @@
-pub mod expr;
 pub mod assign;
 pub mod binary;
-pub mod literal;
+pub mod expr;
 pub mod grouping;
+pub mod literal;
+pub mod logical;
 pub mod unary;
 pub mod variable;
 
 pub use {
-    expr::Expr,
-    variable::Variable,
+    assign::Assign, binary::Binary, expr::Expr, grouping::Grouping, literal::Literal,
+    logical::Logical, unary::Unary, variable::Variable,
 };

@@ -4,17 +4,18 @@ use crate::{expressions::Expr, stmt::Stmt};
 #[derive(Debug, Clone)]
 pub struct If {
     condition: Expr,
-    then_branch: Vec<Stmt>,
-    else_branch: Vec<Stmt>,
+    then_branch: Box<Stmt>,
+    // not all if constructs have an else branch
+    else_branch: Option<Box<Stmt>>,
 }
 
 impl If {
     /// Construct a new If statement
-    pub fn new(condition: Expr, then_branch: Vec<Stmt>, else_branch: Vec<Stmt>) -> If {
+    pub fn new(condition: Expr, then_branch: Stmt, else_branch: Option<Stmt>) -> If {
         If {
             condition,
-            then_branch,
-            else_branch,
+            then_branch: Box::new(then_branch),
+            else_branch: else_branch.map(|b| Box::new(b)),
         }
     }
 
@@ -24,12 +25,12 @@ impl If {
     }
 
     /// Return the then branch
-    pub fn then_branch(&self) -> Vec<Stmt> {
-        self.then_branch.clone()
+    pub fn then_branch(&self) -> Stmt {
+        *self.then_branch.clone()
     }
 
     /// Return the else branch
-    pub fn else_branch(&self) -> Vec<Stmt> {
-        self.else_branch.clone()
+    pub fn else_branch(&self) -> Option<Stmt> {
+        self.else_branch.clone().map(|b| *b)
     }
 }

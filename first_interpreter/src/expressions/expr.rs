@@ -1,6 +1,4 @@
-use super::{
-    assign::Assign, binary::Binary, grouping::Grouping, literal::Literal, unary::Unary, Variable,
-};
+use crate::expressions::{Assign, Binary, Grouping, Literal, Logical, Unary, Variable};
 
 /// Trait for a structure implementing all the methods to
 /// handle different expressions
@@ -11,7 +9,7 @@ pub trait Visitor<R> {
     // fn visit_get_expr(&self, expr: &Get) -> R;
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> R;
     fn visit_literal_expr(&mut self, expr: &Literal) -> R;
-    // fn visit_logical_expr(&self, expr: &Logical) -> R;
+    fn visit_logical_expr(&self, expr: &Logical) -> R;
     // fn visit_set_expr(&self, expr: &Set) -> R;
     // fn visit_super_expr(&self, expr: &Super) -> R;
     // fn visit_this_expr(&self, expr: &This) -> R;
@@ -28,6 +26,7 @@ pub enum Expr {
     Grouping(Grouping),
     Unary(Unary),
     Variable(Variable),
+    Logical(Logical),
 }
 
 impl Expr {
@@ -40,6 +39,7 @@ impl Expr {
             Expr::Grouping(expr) => visitor.visit_grouping_expr(expr),
             Expr::Unary(expr) => visitor.visit_unary_expr(expr),
             Expr::Variable(expr) => visitor.visit_variable_expr(expr),
+            Expr::Logical(expr) => visitor.visit_logical_expr(expr),
         }
     }
 }

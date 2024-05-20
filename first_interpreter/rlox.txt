@@ -18,6 +18,13 @@ print a;
 print b;
 print c;
 
-// var d;
+var d;
 d = "K";
 print d;
+
+var a = 1;
+{
+  var a = a + 2;
+  print a;
+}
+print a;

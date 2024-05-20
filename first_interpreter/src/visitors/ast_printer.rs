@@ -61,6 +61,10 @@ impl Visitor<String> for AstPrinter {
     fn visit_variable_expr(&mut self, _expr: &crate::expressions::Variable) -> String {
         unimplemented!()
     }
+
+    fn visit_logical_expr(&self, _expr: &crate::expressions::Logical) -> String {
+        unimplemented!()
+    }
 }
 
 #[cfg(test)]
