@@ -62,7 +62,7 @@ impl Visitor<String> for AstPrinter {
         unimplemented!()
     }
 
-    fn visit_logical_expr(&self, _expr: &crate::expressions::Logical) -> String {
+    fn visit_logical_expr(&mut self, _expr: &crate::expressions::Logical) -> String {
         unimplemented!()
     }
 }
