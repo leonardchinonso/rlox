@@ -2,7 +2,7 @@ use crate::common::errors::Error;
 use crate::expressions::expr::{Expr, Visitor as ExprVisitor};
 use crate::rlox::token::{TokenLiteral, TokenType};
 use crate::stmt::stmt::Visitor as StmtVisitor;
-use crate::stmt::Stmt;
+use crate::stmt::{Block, Stmt};
 
 use super::environment::Environment;
 
@@ -28,21 +28,45 @@ impl Interpreter {
     }
 
     /// Evaluates a given expression to a literal
-    pub fn evaluate(&self, expr: Expr) -> Result<TokenLiteral, Error> {
+    pub fn evaluate(&mut self, expr: Expr) -> Result<TokenLiteral, Error> {
         Ok(expr.accept(self)?)
+    }
+
+    /// Executes a list of statements in the context of the given environment
+    fn execute_block(
+        &mut self,
+        statements: Vec<Stmt>,
+        environment: Environment,
+    ) -> Result<(), Error> {
+        // replace the interpreter's environment with the one from the context
+        // this is so that the statements are executed with their scopes in view
+        let previous = std::mem::replace(&mut self.0, environment);
+        for statement in statements {
+            // if there is an error executing a statement, switch to the original
+            // scope before terminating the execution pipeline
+            if let Err(err) = self.execute(statement) {
+                self.0 = previous;
+                return Err(err);
+            };
+        }
+        // set it back to the original environment
+        self.0 = previous;
+        Ok(())
     }
 }
 
 impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
     fn visit_assign_expr(
-        &self,
-        _expr: &crate::expressions::assign::Assign,
+        &mut self,
+        expr: &crate::expressions::assign::Assign,
     ) -> Result<TokenLiteral, Error> {
-        unimplemented!()
+        let value = self.evaluate(expr.value())?;
+        self.0.assign(expr.name(), value.clone())?;
+        Ok(value)
     }
 
     fn visit_binary_expr(
-        &self,
+        &mut self,
         expr: &crate::expressions::binary::Binary,
     ) -> Result<TokenLiteral, Error> {
         let left = self.evaluate(expr.left())?;
@@ -346,21 +370,21 @@ impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
     }
 
     fn visit_grouping_expr(
-        &self,
+        &mut self,
         expr: &crate::expressions::grouping::Grouping,
     ) -> Result<TokenLiteral, Error> {
         Ok(self.evaluate(expr.expression())?)
     }
 
     fn visit_literal_expr(
-        &self,
+        &mut self,
         expr: &crate::expressions::literal::Literal,
     ) -> Result<TokenLiteral, Error> {
         Ok(expr.value())
     }
 
     fn visit_unary_expr(
-        &self,
+        &mut self,
         expr: &crate::expressions::unary::Unary,
     ) -> Result<TokenLiteral, Error> {
         let right = self.evaluate(expr.right())?;
@@ -389,42 +413,43 @@ impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
     }
 
     fn visit_variable_expr(
-        &self,
+        &mut self,
         expr: &crate::expressions::Variable,
     ) -> Result<TokenLiteral, Error> {
-        self.0.get(expr.name().clone())
+        self.0.get(&expr.name())
     }
 }
 
 impl StmtVisitor<Result<(), Error>> for Interpreter {
-    fn visit_block_stmt(&self, stmt: &crate::stmt::Block) -> Result<(), Error> {
+    fn visit_block_stmt(&mut self, stmt: &crate::stmt::Block) -> Result<(), Error> {
+        self.execute_block(stmt.statements(), Environment::with_parent(self.0.clone()))?;
+        Ok(())
+    }
+
+    fn visit_class_stmt(&mut self, stmt: &crate::stmt::Class) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_class_stmt(&self, stmt: &crate::stmt::Class) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn visit_expression_stmt(&self, stmt: &crate::stmt::Expression) -> Result<(), Error> {
+    fn visit_expression_stmt(&mut self, stmt: &crate::stmt::Expression) -> Result<(), Error> {
         self.evaluate(stmt.expression())?;
         Ok(())
     }
 
-    fn visit_function_stmt(&self, stmt: &crate::stmt::Function) -> Result<(), Error> {
+    fn visit_function_stmt(&mut self, stmt: &crate::stmt::Function) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_if_stmt(&self, stmt: &crate::stmt::If) -> Result<(), Error> {
+    fn visit_if_stmt(&mut self, stmt: &crate::stmt::If) -> Result<(), Error> {
         todo!()
     }
 
-    fn visit_print_stmt(&self, stmt: &crate::stmt::Print) -> Result<(), Error> {
+    fn visit_print_stmt(&mut self, stmt: &crate::stmt::Print) -> Result<(), Error> {
         let value = self.evaluate(stmt.expression())?;
         value.print();
         Ok(())
     }
 
-    fn visit_return_stmt(&self, stmt: &crate::stmt::Return) -> Result<(), Error> {
+    fn visit_return_stmt(&mut self, stmt: &crate::stmt::Return) -> Result<(), Error> {
         todo!()
     }
 
@@ -434,7 +459,7 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
         Ok(())
     }
 
-    fn visit_while_stmt(&self, stmt: &crate::stmt::While) -> Result<(), Error> {
+    fn visit_while_stmt(&mut self, stmt: &crate::stmt::While) -> Result<(), Error> {
         todo!()
     }
 }

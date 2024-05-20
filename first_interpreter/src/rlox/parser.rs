@@ -5,7 +5,7 @@ use crate::{
         unary::Unary, Variable,
     },
     rlox::token::Token,
-    stmt::{Expression, Print, Stmt, Var},
+    stmt::{Block, Expression, Print, Stmt, Var},
 };
 
 use super::token::{TokenLiteral, TokenType};
@@ -108,6 +108,9 @@ impl Parser {
         if self.match_token(vec![TokenType::Print]) {
             return self.print_statement();
         }
+        if self.match_token(vec![TokenType::LeftBrace]) {
+            return Ok(Stmt::Block(Block::new(self.block()?)));
+        }
         self.expression_statement()
     }
 
@@ -116,6 +119,16 @@ impl Parser {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value.")?;
         Ok(Stmt::Print(Print::new(value)))
+    }
+
+    /// Parses a block of statements
+    fn block(&mut self) -> Result<Vec<Stmt>, Error> {
+        let mut statements = Vec::new();
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            statements.push(self.declaration()?);
+        }
+        self.consume(TokenType::RightBrace, "Expected '}' after block.");
+        Ok(statements)
     }
 
     /// Parses an expression statement

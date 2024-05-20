@@ -3,15 +3,15 @@ use crate::stmt::{Block, Class, Expression, Function, If, Print, Return, Var, Wh
 /// Trait for a structure implementing all the methods to
 /// handle different statements
 pub trait Visitor<R> {
-    fn visit_block_stmt(&self, stmt: &Block) -> R;
-    fn visit_class_stmt(&self, stmt: &Class) -> R;
-    fn visit_expression_stmt(&self, stmt: &Expression) -> R;
-    fn visit_function_stmt(&self, stmt: &Function) -> R;
-    fn visit_if_stmt(&self, stmt: &If) -> R;
-    fn visit_print_stmt(&self, stmt: &Print) -> R;
-    fn visit_return_stmt(&self, stmt: &Return) -> R;
+    fn visit_block_stmt(&mut self, stmt: &Block) -> R;
+    fn visit_class_stmt(&mut self, stmt: &Class) -> R;
+    fn visit_expression_stmt(&mut self, stmt: &Expression) -> R;
+    fn visit_function_stmt(&mut self, stmt: &Function) -> R;
+    fn visit_if_stmt(&mut self, stmt: &If) -> R;
+    fn visit_print_stmt(&mut self, stmt: &Print) -> R;
+    fn visit_return_stmt(&mut self, stmt: &Return) -> R;
     fn visit_var_stmt(&mut self, stmt: &Var) -> R;
-    fn visit_while_stmt(&self, stmt: &While) -> R;
+    fn visit_while_stmt(&mut self, stmt: &While) -> R;
 }
 
 /// Represents all forms of statements

@@ -1,8 +1,8 @@
+pub mod environment;
 pub mod interpreter;
 pub mod parser;
 pub mod scanner;
 pub mod token;
-pub mod environment;
 
 use crate::{common::errors::Error, rlox::interpreter::Interpreter, stmt::print};
 use parser::Parser;
@@ -43,7 +43,6 @@ pub fn run_prompt() -> Result<(), &'static str> {
 ///
 /// It starts the interpreter process after reading the source file
 pub fn run_file(file_path: &str) -> Result<(), Error> {
-    println!("File path: {:?}", file_path);
     let prog = match std::fs::read_to_string(file_path) {
         Ok(prog) => prog,
         Err(err) => {
@@ -68,8 +67,6 @@ fn run(source: String) -> Result<(), Error> {
 
     let mut parser = Parser::new(tokens);
     let statements = parser.parse()?;
-
-    println!("Statements: {:?}", statements);
 
     let mut interpreter = Interpreter::new();
     interpreter.interpret(statements)?;

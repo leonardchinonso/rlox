@@ -17,7 +17,7 @@ impl AstPrinter {
     }
 
     /// Surrounds the given expression in paratheses
-    fn parenthesize(&self, name: String, exprs: Vec<Expr>) -> String {
+    fn parenthesize(&mut self, name: String, exprs: Vec<Expr>) -> String {
         let mut builder = String::new();
 
         builder.push('(');
@@ -31,34 +31,34 @@ impl AstPrinter {
         builder
     }
 
-    pub fn print(&self, expr: Expr) -> String {
+    pub fn print(&mut self, expr: Expr) -> String {
         expr.accept(self)
     }
 }
 
 /// Implements the Visitor trait for AstPrinter
 impl Visitor<String> for AstPrinter {
-    fn visit_assign_expr(&self, _expr: &Assign) -> String {
+    fn visit_assign_expr(&mut self, _expr: &Assign) -> String {
         unimplemented!()
     }
 
-    fn visit_binary_expr(&self, expr: &Binary) -> String {
+    fn visit_binary_expr(&mut self, expr: &Binary) -> String {
         self.parenthesize(expr.operator().lexeme(), vec![expr.left(), expr.right()])
     }
 
-    fn visit_grouping_expr(&self, expr: &Grouping) -> String {
+    fn visit_grouping_expr(&mut self, expr: &Grouping) -> String {
         self.parenthesize("group".to_string(), vec![expr.expression()])
     }
 
-    fn visit_literal_expr(&self, expr: &Literal) -> String {
+    fn visit_literal_expr(&mut self, expr: &Literal) -> String {
         expr.value().to_string()
     }
 
-    fn visit_unary_expr(&self, expr: &Unary) -> String {
+    fn visit_unary_expr(&mut self, expr: &Unary) -> String {
         self.parenthesize(expr.operator().lexeme(), vec![expr.right()])
     }
 
-    fn visit_variable_expr(&self, _expr: &crate::expressions::Variable) -> String {
+    fn visit_variable_expr(&mut self, _expr: &crate::expressions::Variable) -> String {
         unimplemented!()
     }
 }
@@ -81,7 +81,7 @@ mod tests {
         ))));
 
         let expression = Expr::Binary(Binary::new(left, operator, right));
-        let ast_printer = AstPrinter::new();
+        let mut ast_printer = AstPrinter::new();
         let output = ast_printer.print(expression);
 
         assert_eq!("(* (- 123) (group 45.67))".to_string(), output);
