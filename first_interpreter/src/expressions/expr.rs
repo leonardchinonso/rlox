@@ -5,14 +5,14 @@ use crate::expressions::{Assign, Binary, Grouping, Literal, Logical, Unary, Vari
 pub trait Visitor<R> {
     fn visit_assign_expr(&mut self, expr: &Assign) -> R;
     fn visit_binary_expr(&mut self, expr: &Binary) -> R;
-    // fn visit_call_expr(&self, expr: &Call) -> R;
-    // fn visit_get_expr(&self, expr: &Get) -> R;
+    // fn visit_call_expr(&mut self, expr: &Call) -> R;
+    // fn visit_get_expr(&mut self, expr: &Get) -> R;
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> R;
     fn visit_literal_expr(&mut self, expr: &Literal) -> R;
-    fn visit_logical_expr(&self, expr: &Logical) -> R;
-    // fn visit_set_expr(&self, expr: &Set) -> R;
-    // fn visit_super_expr(&self, expr: &Super) -> R;
-    // fn visit_this_expr(&self, expr: &This) -> R;
+    fn visit_logical_expr(&mut self, expr: &Logical) -> R;
+    // fn visit_set_expr(&mut self, expr: &Set) -> R;
+    // fn visit_super_expr(&mut self, expr: &Super) -> R;
+    // fn visit_this_expr(&mut self, expr: &This) -> R;
     fn visit_unary_expr(&mut self, expr: &Unary) -> R;
     fn visit_variable_expr(&mut self, expr: &Variable) -> R;
 }

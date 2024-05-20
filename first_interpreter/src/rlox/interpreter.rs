@@ -420,7 +420,7 @@ impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
     }
 
     fn visit_logical_expr(
-        &self,
+        &mut self,
         expr: &crate::expressions::Logical,
     ) -> Result<TokenLiteral, Error> {
         let left = self.evaluate(expr.left())?;
