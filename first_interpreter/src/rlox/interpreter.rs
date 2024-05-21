@@ -1,3 +1,6 @@
+use std::cell::{Ref, RefCell};
+use std::rc::Rc;
+
 use crate::common::errors::Error;
 use crate::expressions::expr::{Expr, Visitor as ExprVisitor};
 use crate::rlox::token::{TokenLiteral, TokenType};
@@ -6,12 +9,15 @@ use crate::stmt::{Block, Stmt};
 
 use super::environment::Environment;
 
-pub struct Interpreter(Environment);
+pub struct Interpreter {
+    environment: Rc<RefCell<Environment>>,
+}
 
 impl Interpreter {
     pub fn new() -> Interpreter {
-        let environment = Environment::new();
-        Interpreter(environment)
+        Interpreter {
+            environment: Rc::new(RefCell::new(Environment::new())),
+        }
     }
 
     /// Begins the interpretation and evaluation process
@@ -36,21 +42,21 @@ impl Interpreter {
     fn execute_block(
         &mut self,
         statements: Vec<Stmt>,
-        environment: Environment,
+        environment: Rc<RefCell<Environment>>,
     ) -> Result<(), Error> {
         // replace the interpreter's environment with the one from the context
         // this is so that the statements are executed with their scopes in view
-        let previous = std::mem::replace(&mut self.0, environment);
+        let previous = std::mem::replace(&mut self.environment, environment);
         for statement in statements {
             // if there is an error executing a statement, switch to the original
             // scope before terminating the execution pipeline
             if let Err(err) = self.execute(statement) {
-                self.0 = previous;
+                self.environment = previous;
                 return Err(err);
             };
         }
         // set it back to the original environment
-        self.0 = previous;
+        self.environment = previous;
         Ok(())
     }
 }
@@ -61,7 +67,9 @@ impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
         expr: &crate::expressions::assign::Assign,
     ) -> Result<TokenLiteral, Error> {
         let value = self.evaluate(expr.value())?;
-        self.0.assign(expr.name(), value.clone())?;
+        self.environment
+            .borrow_mut()
+            .assign(expr.name(), value.clone())?;
         Ok(value)
     }
 
@@ -416,7 +424,7 @@ impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
         &mut self,
         expr: &crate::expressions::Variable,
     ) -> Result<TokenLiteral, Error> {
-        self.0.get(&expr.name())
+        self.environment.borrow().get(&expr.name())
     }
 
     fn visit_logical_expr(
@@ -475,7 +483,8 @@ impl ExprVisitor<Result<TokenLiteral, Error>> for Interpreter {
 
 impl StmtVisitor<Result<(), Error>> for Interpreter {
     fn visit_block_stmt(&mut self, stmt: &crate::stmt::Block) -> Result<(), Error> {
-        self.execute_block(stmt.statements(), Environment::with_parent(self.0.clone()))?;
+        let parent_env = Environment::with_parent(self.environment.clone());
+        self.execute_block(stmt.statements(), Rc::new(RefCell::new(parent_env)))?;
         Ok(())
     }
 
@@ -521,12 +530,29 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
 
     fn visit_var_stmt(&mut self, stmt: &crate::stmt::Var) -> Result<(), Error> {
         let value = self.evaluate(stmt.initializer())?;
-        self.0.define(stmt.name().lexeme(), value);
+        self.environment
+            .borrow_mut()
+            .define(stmt.name().lexeme(), value);
         Ok(())
     }
 
     fn visit_while_stmt(&mut self, stmt: &crate::stmt::While) -> Result<(), Error> {
-        todo!()
+        loop {
+            let value = self.evaluate(stmt.condition())?;
+            if let TokenLiteral::Boolean(bool_value) = value {
+                if bool_value {
+                    self.execute(*stmt.body())?;
+                } else {
+                    break;
+                }
+            } else {
+                return Err(Error::report_generic(
+                    "Condition in if statement must evaluate to 'true' or 'false'",
+                ));
+            }
+        }
+
+        Ok(())
     }
 }
 

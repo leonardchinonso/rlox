@@ -5,7 +5,7 @@ use crate::{
         unary::Unary, Logical, Variable,
     },
     rlox::token::Token,
-    stmt::{Block, Expression, If, Print, Stmt, Var},
+    stmt::{Block, Expression, If, Print, Stmt, Var, While},
 };
 
 use super::token::{TokenLiteral, TokenType};
@@ -114,6 +114,12 @@ impl Parser {
         if self.match_token(vec![TokenType::If]) {
             return self.if_statement();
         }
+        if self.match_token(vec![TokenType::While]) {
+            return self.while_statement();
+        }
+        if self.match_token(vec![TokenType::For]) {
+            return self.for_statement();
+        }
         self.expression_statement()
     }
 
@@ -132,6 +138,63 @@ impl Parser {
         }
         self.consume(TokenType::RightBrace, "Expected '}' after block.")?;
         Ok(Stmt::Block(Block::new(statements)))
+    }
+
+    /// Parses a while statement
+    fn while_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'while'.")?;
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen, "Expected ')' after while condition.")?;
+        let body = self.statement()?;
+
+        Ok(Stmt::While(While::new(condition, Box::new(body))))
+    }
+
+    /// Parses a for statement
+    fn for_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'for'")?;
+
+        // get initializer
+        let initializer;
+        if self.match_token(vec![TokenType::Semicolon]) {
+            initializer = None;
+        } else if self.match_token(vec![TokenType::Var]) {
+            initializer = Some(self.var_declaration()?);
+        } else {
+            initializer = Some(self.expression_statement()?);
+        }
+
+        // get condition
+        let mut condition = None;
+        if !self.check(TokenType::Semicolon) {
+            condition = Some(self.expression()?);
+        }
+        self.consume(TokenType::Semicolon, "Expect ';' after loop condition.")?;
+
+        let mut increment = None;
+        if !self.check(TokenType::RightParen) {
+            increment = Some(self.expression()?);
+        }
+        self.consume(TokenType::RightParen, "Expect ')' after 'for' clauses.")?;
+
+        let mut body = self.statement()?;
+        if let Some(increment) = increment {
+            body = Stmt::Block(Block::new(vec![
+                body,
+                Stmt::Expression(Expression::new(increment)),
+            ]));
+        }
+
+        if condition.is_none() {
+            condition = Some(Expr::Literal(Literal::new(TokenLiteral::Boolean(true))));
+        }
+        body = Stmt::While(While::new(condition.unwrap(), Box::new(body)));
+
+        if let Some(initializer) = initializer {
+            body = Stmt::Block(Block::new(vec![initializer, body]))
+        }
+
+        Ok(body)
     }
 
     /// Parses an if statement

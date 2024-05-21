@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     common::Error,
@@ -9,7 +9,7 @@ use crate::{
 /// Represents some kind of storage for variables to values
 pub(crate) struct Environment {
     state: HashMap<String, TokenLiteral>,
-    parent: Option<Box<Environment>>,
+    parent: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Default for Environment {
@@ -32,10 +32,10 @@ impl Environment {
 
     /// Constructs a new Environment with the passed in Environment
     /// as its enclosing environment (parent)
-    pub(crate) fn with_parent(parent: Environment) -> Environment {
+    pub(crate) fn with_parent(parent: Rc<RefCell<Environment>>) -> Environment {
         Environment {
             state: HashMap::new(),
-            parent: Some(Box::new(parent)),
+            parent: Some(parent),
         }
     }
 
@@ -54,7 +54,7 @@ impl Environment {
 
         // check the ancestor environment
         if let Some(v) = self.parent.clone() {
-            return v.get(name);
+            return v.borrow().get(name);
         }
 
         Err(Error::report_runtime(
@@ -68,13 +68,16 @@ impl Environment {
     pub(crate) fn assign(&mut self, name: Token, value: TokenLiteral) -> Result<(), Error> {
         let lexeme = name.lexeme();
         if self.state.contains_key(&lexeme) {
-            self.state.insert(name.lexeme(), value);
+            self.state.insert(lexeme.clone(), value);
             return Ok(());
         }
 
         // check the ancestor environment
-        if let Some(mut v) = self.parent.clone() {
-            return v.assign(name, value);
+        let parent = self.parent.take();
+        if let Some(parent_environment) = parent {
+            parent_environment.borrow_mut().assign(name, value)?;
+            self.parent = Some(parent_environment);
+            return Ok(());
         }
 
         Err(Error::report_runtime(
