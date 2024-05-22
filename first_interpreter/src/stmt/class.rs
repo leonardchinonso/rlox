@@ -1,6 +1,8 @@
-use crate::{expressions::Variable, rlox::Token};
-
+use crate::common::Error;
+use crate::rlox::interpreter::Interpreter;
+use crate::rlox::{RloxCallable, Value};
 use crate::stmt::Function;
+use crate::{expressions::Variable, rlox::Token};
 
 /// Represents a Class
 #[derive(Debug, Clone)]
@@ -33,5 +35,16 @@ impl Class {
     /// Returns the methods
     pub fn methods(&self) -> Function {
         self.methods.clone()
+    }
+}
+
+impl RloxCallable for Class {
+    fn arity(&self) -> usize {
+        0
+    }
+
+    fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Value>) -> Result<Value, Error> {
+        println!("Class called");
+        Ok(Value::new(0))
     }
 }

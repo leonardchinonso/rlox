@@ -1,11 +1,11 @@
-use crate::expressions::{Assign, Binary, Grouping, Literal, Logical, Unary, Variable};
+use crate::expressions::{Assign, Binary, Call, Grouping, Literal, Logical, Unary, Variable};
 
 /// Trait for a structure implementing all the methods to
 /// handle different expressions
 pub trait Visitor<R> {
     fn visit_assign_expr(&mut self, expr: &Assign) -> R;
     fn visit_binary_expr(&mut self, expr: &Binary) -> R;
-    // fn visit_call_expr(&mut self, expr: &Call) -> R;
+    fn visit_call_expr(&mut self, expr: &Call) -> R;
     // fn visit_get_expr(&mut self, expr: &Get) -> R;
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> R;
     fn visit_literal_expr(&mut self, expr: &Literal) -> R;
@@ -27,6 +27,7 @@ pub enum Expr {
     Unary(Unary),
     Variable(Variable),
     Logical(Logical),
+    Call(Call),
 }
 
 impl Expr {
@@ -40,6 +41,7 @@ impl Expr {
             Expr::Unary(expr) => visitor.visit_unary_expr(expr),
             Expr::Variable(expr) => visitor.visit_variable_expr(expr),
             Expr::Logical(expr) => visitor.visit_logical_expr(expr),
+            Expr::Call(expr) => visitor.visit_call_expr(expr),
         }
     }
 }

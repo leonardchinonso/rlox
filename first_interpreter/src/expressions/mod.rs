@@ -6,8 +6,9 @@ pub mod literal;
 pub mod logical;
 pub mod unary;
 pub mod variable;
+pub mod call;
 
 pub use {
     assign::Assign, binary::Binary, expr::Expr, grouping::Grouping, literal::Literal,
-    logical::Logical, unary::Unary, variable::Variable,
+    logical::Logical, unary::Unary, variable::Variable, call::Call,
 };

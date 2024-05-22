@@ -2,13 +2,13 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     common::Error,
-    rlox::{Token, TokenLiteral},
+    rlox::{Token, Value},
 };
 
 #[derive(Debug, Clone)]
-/// Represents some kind of storage for variables to values
+/// Represents some kind of recursive storage for variables to values
 pub(crate) struct Environment {
-    state: HashMap<String, TokenLiteral>,
+    state: HashMap<String, Value>,
     parent: Option<Rc<RefCell<Environment>>>,
 }
 
@@ -40,12 +40,12 @@ impl Environment {
     }
 
     /// Defines a new variable by storing it in the Environment table
-    pub(crate) fn define(&mut self, name: String, value: TokenLiteral) {
+    pub(crate) fn define(&mut self, name: String, value: Value) {
         self.state.insert(name, value);
     }
 
     /// Returns the value of a variable
-    pub(crate) fn get(&self, name: &Token) -> Result<TokenLiteral, Error> {
+    pub(crate) fn get(&self, name: &Token) -> Result<Value, Error> {
         // check this environment for the token
         let lexeme = name.lexeme();
         if let Some(v) = self.state.get(&lexeme) {
@@ -65,7 +65,7 @@ impl Environment {
 
     /// Assigns a new value to a variable
     /// Errors if the variable has not been declared before
-    pub(crate) fn assign(&mut self, name: Token, value: TokenLiteral) -> Result<(), Error> {
+    pub(crate) fn assign(&mut self, name: Token, value: Value) -> Result<(), Error> {
         let lexeme = name.lexeme();
         if self.state.contains_key(&lexeme) {
             self.state.insert(lexeme.clone(), value);

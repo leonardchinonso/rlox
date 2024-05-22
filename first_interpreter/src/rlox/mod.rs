@@ -1,14 +1,22 @@
+pub mod callable;
 pub mod environment;
 pub mod interpreter;
+pub mod native;
 pub mod parser;
 pub mod scanner;
 pub mod token;
+pub mod types;
 
-use crate::{common::errors::Error, rlox::interpreter::Interpreter, stmt::print};
+use crate::{common::errors::Error, rlox::interpreter::Interpreter};
 use parser::Parser;
 use scanner::Scanner;
 
-pub use token::{Token, TokenLiteral, TokenType};
+pub use {
+    callable::RloxCallable,
+    native::{ClockFunction, NativeCallable},
+    token::{Token, TokenLiteral},
+    types::Value,
+};
 
 /// This is a wrapper for running the source code
 ///
@@ -81,7 +89,7 @@ mod tests {
     #[test]
     fn test_e2e() {
         let test_cases = [
-            ("(4 + 3)", "(group (+ 4 3))"),
+            ("(4 + 3);", "(group (+ 4 3))"),
             (
                 "(4 + 3 * 12) - (7 / 5) == 13;",
                 "(== (- (group (+ 4 (* 3 12))) (group (/ 7 5))) 13)",

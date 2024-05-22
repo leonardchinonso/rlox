@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 /// This represents a chunk of a source file, a token.
 #[derive(Debug, Clone, PartialEq)]

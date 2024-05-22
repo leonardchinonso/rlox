@@ -1,7 +1,9 @@
+use crate::rlox::{parser::Parser, scanner::Scanner};
+
 mod common;
 mod expressions;
-mod stmt;
 mod rlox;
+mod stmt;
 mod visitors;
 
 fn main() -> Result<(), &'static str> {

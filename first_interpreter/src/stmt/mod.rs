@@ -12,6 +12,6 @@ pub mod var;
 pub mod while_;
 
 pub use {
-    block::Block, class::Class, expression::Expression, function::Function, if_::If, print::Print,
-    return_::Return, stmt::Stmt, var::Var, while_::While,
+    block::Block, class::Class, expression::Expression, function::Function, function::RloxFunction,
+    if_::If, print::Print, return_::Return, stmt::Stmt, var::Var, while_::While,
 };

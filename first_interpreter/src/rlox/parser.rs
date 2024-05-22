@@ -1,14 +1,26 @@
 use crate::{
-    common::errors::Error,
+    common::{errors::Error, MAX_FUNCTION_ARGUMENTS_SIZE},
     expressions::{
         assign::Assign, binary::Binary, expr::Expr, grouping::Grouping, literal::Literal,
-        unary::Unary, Logical, Variable,
+        unary::Unary, Call, Logical, Variable,
     },
     rlox::token::Token,
-    stmt::{Block, Expression, If, Print, Stmt, Var, While},
+    stmt::{Block, Expression, Function, If, Print, Stmt, Var, While},
 };
 
-use super::token::{TokenLiteral, TokenType};
+use super::{
+    token::{TokenLiteral, TokenType},
+    Value,
+};
+
+/// Determines what kind of Callable is being parsed
+#[derive(Debug)]
+enum CallableKind {
+    /// Identifier for a function
+    Function,
+    /// Identifier for a method/associated function
+    Method,
+}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -80,6 +92,10 @@ impl Parser {
 impl Parser {
     /// Parses a series of statements when called repeatedly
     fn declaration(&mut self) -> Result<Stmt, Error> {
+        if self.match_token(vec![TokenType::Fun]) {
+            return self.function(CallableKind::Function);
+        }
+
         if self.match_token(vec![TokenType::Var]) {
             match self.var_declaration() {
                 Ok(v) => return Ok(v),
@@ -186,7 +202,9 @@ impl Parser {
         }
 
         if condition.is_none() {
-            condition = Some(Expr::Literal(Literal::new(TokenLiteral::Boolean(true))));
+            condition = Some(Expr::Literal(Literal::new(Value::new(
+                TokenLiteral::Boolean(true),
+            ))));
         }
         body = Stmt::While(While::new(condition.unwrap(), Box::new(body)));
 
@@ -220,6 +238,47 @@ impl Parser {
         Ok(Stmt::Expression(Expression::new(expr)))
     }
 
+    /// Parses a function declaration
+    fn function(&mut self, kind: CallableKind) -> Result<Stmt, Error> {
+        let name = self.consume(TokenType::Identifier, &format!("Expected {:?} name.", kind))?;
+        self.consume(
+            TokenType::LeftParen,
+            &format!("Expected '(' after {:?} name.", kind),
+        )?;
+
+        let mut params = Vec::new();
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if params.len() >= MAX_FUNCTION_ARGUMENTS_SIZE {
+                    return Err(Error::report_parse(
+                        self.peek(),
+                        "Cannot have equal to or more than 255 arguements",
+                    ));
+                }
+                params.push(self.consume(TokenType::Identifier, "Expected parameter name")?);
+                if !self.match_token(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RightParen, "Expected ')' after parameters")?;
+
+        // start parsing function body
+        self.consume(
+            TokenType::LeftBrace,
+            &format!("Expected '{{' before {:?} body.", kind),
+        )?;
+        match self.block_statement()? {
+            Stmt::Block(body) => Ok(Stmt::Function(Function::new(
+                name,
+                params,
+                body.statements(),
+            ))),
+            _ => panic!("This should not happen, block statement should yield a body"),
+        }
+    }
+
+    /// Parses a variable declaration
     fn var_declaration(&mut self) -> Result<Stmt, Error> {
         let name = self.consume(TokenType::Identifier, "Expected variable name.")?;
 
@@ -345,26 +404,66 @@ impl Parser {
             let right = self.unary()?;
             return Ok(Expr::Unary(Unary::new(operator, right)));
         }
-        self.primary()
+        self.call()
+    }
+
+    // Returns the result of a call expression
+    fn call(&mut self) -> Result<Expr, Error> {
+        let mut expr = self.primary()?;
+        loop {
+            if self.match_token(vec![TokenType::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+        Ok(expr)
+    }
+
+    /// Parse the argument list of a call
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, Error> {
+        let mut arguments = Vec::new();
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if arguments.len() >= MAX_FUNCTION_ARGUMENTS_SIZE {
+                    return Err(Error::report_parse(
+                        self.peek(),
+                        "Cannot have equal to or more than 255 arguements",
+                    ));
+                }
+                arguments.push(self.expression()?);
+                if !self.match_token(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        let paren = self.consume(TokenType::RightParen, "Expected ')' after arguments.")?;
+        Ok(Expr::Call(Call::new(callee, paren, arguments)))
     }
 
     /// Returns a primary expression
     fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_token(vec![TokenType::False]) {
-            return Ok(Expr::Literal(Literal::new(TokenLiteral::Boolean(false))));
+            return Ok(Expr::Literal(Literal::new(Value::new(
+                TokenLiteral::Boolean(false),
+            ))));
         }
         if self.match_token(vec![TokenType::True]) {
-            return Ok(Expr::Literal(Literal::new(TokenLiteral::Boolean(true))));
+            return Ok(Expr::Literal(Literal::new(Value::new(
+                TokenLiteral::Boolean(true),
+            ))));
         }
         if self.match_token(vec![TokenType::Nil]) {
-            return Ok(Expr::Literal(Literal::new(TokenLiteral::Nil)));
+            return Ok(Expr::Literal(Literal::new(Value::new(TokenLiteral::Nil))));
         }
         if self.match_token(vec![
             TokenType::Integer,
             TokenType::Float,
             TokenType::String,
         ]) {
-            return Ok(Expr::Literal(Literal::new(self.previous().literal())));
+            return Ok(Expr::Literal(Literal::new(Value::new(
+                self.previous().literal(),
+            ))));
         }
         if self.match_token(vec![TokenType::Identifier]) {
             return Ok(Expr::Variable(Variable::new(self.previous())));

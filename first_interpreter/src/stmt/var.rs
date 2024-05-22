@@ -1,6 +1,6 @@
 use crate::{
     expressions::{literal::Literal, Expr},
-    rlox::{Token, TokenLiteral},
+    rlox::{Token, TokenLiteral, Value},
 };
 
 /// Represents a Return statement
@@ -13,7 +13,8 @@ pub struct Var {
 impl Var {
     /// Construct a new variable Var
     pub fn new(name: Token, initializer: Option<Expr>) -> Var {
-        let initializer = initializer.unwrap_or(Expr::Literal(Literal::new(TokenLiteral::Nil)));
+        let initializer =
+            initializer.unwrap_or(Expr::Literal(Literal::new(Value::new(TokenLiteral::Nil))));
         Var { name, initializer }
     }
 

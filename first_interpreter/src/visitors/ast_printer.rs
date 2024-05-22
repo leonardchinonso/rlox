@@ -1,10 +1,13 @@
-use crate::expressions::{
-    assign::Assign,
-    binary::Binary,
-    expr::{Expr, Visitor},
-    grouping::Grouping,
-    literal::Literal,
-    unary::Unary,
+use crate::{
+    expressions::{
+        assign::Assign,
+        binary::Binary,
+        expr::{Expr, Visitor},
+        grouping::Grouping,
+        literal::Literal,
+        unary::Unary,
+    },
+    rlox::TokenLiteral,
 };
 
 /// Represents a printer for the abstract syntax tree
@@ -51,7 +54,10 @@ impl Visitor<String> for AstPrinter {
     }
 
     fn visit_literal_expr(&mut self, expr: &Literal) -> String {
-        expr.value().to_string()
+        expr.value()
+            .owned::<TokenLiteral>()
+            .expect("Must be a valid literal")
+            .to_string()
     }
 
     fn visit_unary_expr(&mut self, expr: &Unary) -> String {
@@ -65,11 +71,18 @@ impl Visitor<String> for AstPrinter {
     fn visit_logical_expr(&mut self, _expr: &crate::expressions::Logical) -> String {
         unimplemented!()
     }
+
+    fn visit_call_expr(&mut self, expr: &crate::expressions::Call) -> String {
+        unimplemented!()
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::rlox::token::{Token, TokenLiteral, TokenType};
+    use crate::rlox::{
+        token::{Token, TokenLiteral, TokenType},
+        Value,
+    };
 
     use super::*;
 
@@ -77,12 +90,12 @@ mod tests {
     fn test_ast_printer() {
         let left = Expr::Unary(Unary::new(
             Token::new(TokenType::Minus, "-", TokenLiteral::Nil, 1),
-            Expr::Literal(Literal::new(TokenLiteral::Integer(123))),
+            Expr::Literal(Literal::new(Value::new(TokenLiteral::Integer(123)))),
         ));
         let operator = Token::new(TokenType::Star, "*", TokenLiteral::Nil, 1);
-        let right = Expr::Grouping(Grouping::new(Expr::Literal(Literal::new(
+        let right = Expr::Grouping(Grouping::new(Expr::Literal(Literal::new(Value::new(
             TokenLiteral::Float(45.67),
-        ))));
+        )))));
 
         let expression = Expr::Binary(Binary::new(left, operator, right));
         let mut ast_printer = AstPrinter::new();

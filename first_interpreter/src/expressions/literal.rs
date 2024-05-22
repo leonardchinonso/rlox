@@ -1,19 +1,19 @@
-use crate::rlox::token::TokenLiteral;
+use crate::rlox::Value;
 
 /// This represents a literal value used in expressions
 #[derive(Debug, Clone)]
 pub struct Literal {
-    value: TokenLiteral,
+    value: Value,
 }
 
 impl Literal {
     /// Constructs a new Literal
-    pub fn new(value: TokenLiteral) -> Literal {
+    pub fn new(value: Value) -> Literal {
         Literal { value }
     }
 
     /// Returns the literal value
-    pub fn value(&self) -> TokenLiteral {
+    pub fn value(&self) -> Value {
         self.value.clone()
     }
 }
