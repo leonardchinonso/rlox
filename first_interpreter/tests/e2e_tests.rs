@@ -90,6 +90,7 @@ fn test_functions() {
       }
       
       sayHi("Chinonso", "Okoli");
+    print sayHi;
 "#;
 
     let mut scanner = Scanner::new(source_code.to_string());
@@ -105,4 +106,33 @@ fn test_functions() {
 
     let mut interpreter = Interpreter::new();
     assert!(interpreter.interpret(statements.unwrap()).is_ok());
+}
+
+#[test]
+fn test_return_statement() {
+    let source_code = r#"
+    fun fib(n) {
+        if (n <= 1) return n;
+        return fib(n - 2) + fib(n - 1);
+      }
+      
+      for (var i = 0; i < 20; i = i + 1) {
+        print fib(i);
+      }
+"#;
+
+    let mut scanner = Scanner::new(source_code.to_string());
+
+    let res = scanner.scan_tokens();
+    assert!(res.is_ok());
+
+    let tokens = res.unwrap();
+
+    let mut parser = Parser::new(tokens);
+    let statements = parser.parse();
+    assert!(statements.is_ok());
+
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.interpret(statements.unwrap());
+    assert!(res.is_ok());
 }

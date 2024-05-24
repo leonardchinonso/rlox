@@ -5,7 +5,7 @@ use crate::{
         unary::Unary, Call, Logical, Variable,
     },
     rlox::token::Token,
-    stmt::{Block, Expression, Function, If, Print, Stmt, Var, While},
+    stmt::{Block, Expression, Function, If, Print, Return, Stmt, Var, While},
 };
 
 use super::{
@@ -130,6 +130,9 @@ impl Parser {
         if self.match_token(vec![TokenType::If]) {
             return self.if_statement();
         }
+        if self.match_token(vec![TokenType::Return]) {
+            return self.return_statement();
+        }
         if self.match_token(vec![TokenType::While]) {
             return self.while_statement();
         }
@@ -144,6 +147,17 @@ impl Parser {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value.")?;
         Ok(Stmt::Print(Print::new(value)))
+    }
+
+    /// Parses the return statement
+    fn return_statement(&mut self) -> Result<Stmt, Error> {
+        let keyword = self.previous();
+        let mut value = None;
+        if !self.check(TokenType::Semicolon) {
+            value = Some(self.expression()?);
+        }
+        self.consume(TokenType::Semicolon, "Expected ';' after return value")?;
+        Ok(Stmt::Return(Return::new(keyword, value)))
     }
 
     /// Parses a block of statements

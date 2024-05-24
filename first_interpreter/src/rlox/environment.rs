@@ -7,7 +7,7 @@ use crate::{
 
 #[derive(Debug, Clone)]
 /// Represents some kind of recursive storage for variables to values
-pub(crate) struct Environment {
+pub struct Environment {
     state: HashMap<String, Value>,
     parent: Option<Rc<RefCell<Environment>>>,
 }

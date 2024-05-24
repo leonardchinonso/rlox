@@ -4,12 +4,12 @@ use crate::{expressions::Expr, rlox::Token};
 #[derive(Debug, Clone)]
 pub struct Return {
     keyword: Token,
-    value: Expr,
+    value: Option<Expr>,
 }
 
 impl Return {
     /// Construct a new Return statement
-    pub fn new(keyword: Token, value: Expr) -> Return {
+    pub fn new(keyword: Token, value: Option<Expr>) -> Return {
         Return { keyword, value }
     }
 
@@ -19,7 +19,7 @@ impl Return {
     }
 
     /// Returns the value
-    pub fn value(&self) -> Expr {
+    pub fn value(&self) -> Option<Expr> {
         self.value.clone()
     }
 }

@@ -36,8 +36,11 @@ impl RloxCallable for RloxFunction {
         for i in 0..self.0.params.len() {
             environment.define(self.0.params[i].lexeme(), arguments[i].clone())
         }
-        interpreter.execute_block(self.0.body(), Rc::new(RefCell::new(environment)))?;
-        Ok(Value::new(()))
+        match interpreter.execute_block(self.0.body(), Rc::new(RefCell::new(environment))) {
+            Ok(_) => Ok(Value::new(TokenLiteral::Nil)),
+            Err(Error::Return(ret_val)) => Ok(ret_val),
+            Err(err) => Err(err),
+        }
     }
 }
 

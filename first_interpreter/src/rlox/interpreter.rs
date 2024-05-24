@@ -595,7 +595,11 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
     }
 
     fn visit_return_stmt(&mut self, stmt: &crate::stmt::Return) -> Result<(), Error> {
-        todo!()
+        if let Some(expr) = stmt.value() {
+            let value = self.evaluate(expr)?;
+            return Err(Error::Return(value));
+        }
+        Err(Error::Return(Value::new(TokenLiteral::Nil)))
     }
 
     fn visit_var_stmt(&mut self, stmt: &crate::stmt::Var) -> Result<(), Error> {

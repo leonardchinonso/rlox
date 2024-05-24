@@ -1,4 +1,9 @@
-use crate::rlox::token::{Token, TokenType};
+use std::fmt::write;
+
+use crate::rlox::{
+    token::{Token, TokenType},
+    Value,
+};
 
 /// Represents an IO error
 #[derive(Debug)]
@@ -77,6 +82,8 @@ pub enum Error {
     ParseError(ParseError),
     /// Error used for runtime errors
     RuntimeError(RuntimeError),
+    /// Not an error, used as a hack for Return statements
+    Return(Value),
 }
 
 impl std::fmt::Display for Error {
@@ -103,6 +110,7 @@ impl std::fmt::Display for Error {
                 ),
             },
             Error::RuntimeError(err) => write!(f, "{:?}\n[line {}]", err.message, err.token.line()),
+            Error::Return(v) => write!(f, "Return {:?}", v),
         }
     }
 }
