@@ -12,31 +12,38 @@ use crate::{
 /// Represents a wrapper over the Function to keep the
 /// interpreter logic separate from the front-end's syntax classes
 #[derive(Debug, Clone)]
-pub struct RloxFunction(Function);
+pub struct RloxFunction {
+    declaration: Function,
+    closure: Rc<RefCell<Environment>>,
+}
 
 impl RloxFunction {
-    pub fn new(f: Function) -> RloxFunction {
-        RloxFunction(f)
+    pub fn new(declaration: Function, closure: Rc<RefCell<Environment>>) -> RloxFunction {
+        RloxFunction {
+            declaration,
+            closure,
+        }
     }
 }
 
 impl Display for RloxFunction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<fn {}>", self.0.name.lexeme())
+        write!(f, "<fn {}>", self.declaration.name.lexeme())
     }
 }
 
 impl RloxCallable for RloxFunction {
     fn arity(&self) -> usize {
-        self.0.params.len()
+        self.declaration.params.len()
     }
 
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Value>) -> Result<Value, Error> {
-        let mut environment = Environment::with_parent(interpreter.globals());
-        for i in 0..self.0.params.len() {
-            environment.define(self.0.params[i].lexeme(), arguments[i].clone())
+        let mut environment = Environment::with_parent(self.closure.clone());
+        for i in 0..self.declaration.params.len() {
+            environment.define(self.declaration.params[i].lexeme(), arguments[i].clone())
         }
-        match interpreter.execute_block(self.0.body(), Rc::new(RefCell::new(environment))) {
+        match interpreter.execute_block(self.declaration.body(), Rc::new(RefCell::new(environment)))
+        {
             Ok(_) => Ok(Value::new(TokenLiteral::Nil)),
             Err(Error::Return(ret_val)) => Ok(ret_val),
             Err(err) => Err(err),

@@ -136,3 +136,68 @@ fn test_return_statement() {
     let res = interpreter.interpret(statements.unwrap());
     assert!(res.is_ok());
 }
+
+#[test]
+fn test_closures() {
+    let source_code = r#"
+    fun makeCounter() {
+      var i = 0;
+      fun count() {
+        i = i + 1;
+        print i;
+      }
+    
+      return count;
+    }
+    
+    var counter = makeCounter();
+    counter(); // "1".
+    counter(); // "2".
+"#;
+
+    let mut scanner = Scanner::new(source_code.to_string());
+
+    let res = scanner.scan_tokens();
+    assert!(res.is_ok());
+
+    let tokens = res.unwrap();
+
+    let mut parser = Parser::new(tokens);
+    let statements = parser.parse();
+    assert!(statements.is_ok());
+
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.interpret(statements.unwrap());
+    assert!(res.is_ok());
+}
+
+#[test]
+fn test_dynamic_scoping() {
+    let source_code = r#"
+    var a = "global";
+    {
+      fun showA() {
+        print a;
+      }
+
+      showA();
+      var a = "block";
+      showA();
+    }
+"#;
+
+    let mut scanner = Scanner::new(source_code.to_string());
+
+    let res = scanner.scan_tokens();
+    assert!(res.is_ok());
+
+    let tokens = res.unwrap();
+
+    let mut parser = Parser::new(tokens);
+    let statements = parser.parse();
+    assert!(statements.is_ok());
+
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.interpret(statements.unwrap());
+    assert!(res.is_ok());
+}

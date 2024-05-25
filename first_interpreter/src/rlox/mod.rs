@@ -6,6 +6,7 @@ pub mod parser;
 pub mod scanner;
 pub mod token;
 pub mod types;
+pub mod resolver;
 
 use crate::{common::errors::Error, rlox::interpreter::Interpreter};
 use parser::Parser;

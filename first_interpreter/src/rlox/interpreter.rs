@@ -79,6 +79,11 @@ impl Interpreter {
         self.environment = previous;
         Ok(())
     }
+
+    /// Resolves something TODO
+    pub fn resolve(&self, expr: Expr, depth: usize) {
+        self.locals.insert(expr, depth);
+    }
 }
 
 impl ExprVisitor<Result<Value, Error>> for Interpreter {
@@ -561,7 +566,7 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
     }
 
     fn visit_function_stmt(&mut self, stmt: &crate::stmt::Function) -> Result<(), Error> {
-        let function = RloxFunction::new(stmt.clone());
+        let function = RloxFunction::new(stmt.clone(), self.environment.clone());
         self.environment
             .borrow_mut()
             .define(stmt.name().lexeme(), Value::new(function));
